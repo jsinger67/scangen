@@ -1,0 +1,10 @@
+[package]
+name = "scangen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.86"
+dot = "0.1.4"
+log = "0.4.21"
+regex-syntax = "0.8.4"
