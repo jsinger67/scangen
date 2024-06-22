@@ -343,7 +343,7 @@ mod tests {
     fn test_nfa_repetition() {
         // Create an example AST and convert the AST to an NFA
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
-        nfa.repetition();
+        nfa.zero_or_more();
 
         let mut f = File::create("a_many.dot").unwrap();
         render_to(&nfa, &mut f);
@@ -397,6 +397,20 @@ mod tests {
         assert_eq!(nfa.states.len(), 4);
         assert_eq!(nfa.start_state, 2);
         assert_eq!(nfa.end_state, 3);
+    }
+
+    #[test]
+    fn test_complex_nfa() {
+        // Create an example AST and convert the AST to an NFA
+        let nfa: Nfa = parse_regex_syntax("(a|b)*abb").unwrap().try_into().unwrap();
+
+        let mut f = File::create("complex.dot").unwrap();
+        render_to(&nfa, &mut f);
+
+        // Add assertions here to validate the NFA
+        assert_eq!(nfa.states.len(), 14);
+        assert_eq!(nfa.start_state, 6);
+        assert_eq!(nfa.end_state, 13);
     }
 
     #[test]

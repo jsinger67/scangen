@@ -66,7 +66,10 @@ impl TryFrom<Ast> for Nfa {
                 }
                 Ok(nfa)
             }
-            Ast::Group(_) => todo!(),
+            Ast::Group(ref g) => {
+                nfa = g.ast.as_ref().clone().try_into()?;
+                Ok(nfa)
+            }
             Ast::Alternation(ref a) => {
                 for ast in a.asts.iter() {
                     let nfa2: Nfa = ast.clone().try_into()?;
