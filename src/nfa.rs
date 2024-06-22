@@ -302,7 +302,7 @@ mod tests {
         let nfa: Nfa = parse_regex_syntax("ab").unwrap().try_into().unwrap();
 
         let mut f = File::create("ab.dot").unwrap();
-        render_to(&nfa, &mut f);
+        render_to(&nfa, "ab", &mut f);
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -331,7 +331,7 @@ mod tests {
         nfa1.alternation(nfa2);
 
         let mut f = File::create("a_or_b.dot").unwrap();
-        render_to(&nfa1, &mut f);
+        render_to(&nfa1, "a|b", &mut f);
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa1.states.len(), 6);
@@ -346,7 +346,7 @@ mod tests {
         nfa.zero_or_more();
 
         let mut f = File::create("a_many.dot").unwrap();
-        render_to(&nfa, &mut f);
+        render_to(&nfa, "a", &mut f);
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -361,7 +361,7 @@ mod tests {
         nfa.zero_or_one();
 
         let mut f = File::create("a_zero_or_one.dot").unwrap();
-        render_to(&nfa, &mut f);
+        render_to(&nfa, "a", &mut f);
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 3);
@@ -376,7 +376,7 @@ mod tests {
         nfa.one_or_more();
 
         let mut f = File::create("a_one_or_more.dot").unwrap();
-        render_to(&nfa, &mut f);
+        render_to(&nfa, "a", &mut f);
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -391,7 +391,7 @@ mod tests {
         nfa.zero_or_more();
 
         let mut f = File::create("a_zero_or_more.dot").unwrap();
-        render_to(&nfa, &mut f);
+        render_to(&nfa, "a", &mut f);
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -405,7 +405,7 @@ mod tests {
         let nfa: Nfa = parse_regex_syntax("(a|b)*abb").unwrap().try_into().unwrap();
 
         let mut f = File::create("complex.dot").unwrap();
-        render_to(&nfa, &mut f);
+        render_to(&nfa, "(a|b)*abb", &mut f);
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 14);
