@@ -18,3 +18,8 @@ mod ast;
 
 /// Module with conversion to graphviz dot format
 mod dot;
+pub use dot::render_to;
+
+/// Module with error definitions
+mod errors;
+pub use errors::{Result, ScanGenError};

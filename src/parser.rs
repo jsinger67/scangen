@@ -3,7 +3,7 @@
 //! We use the `regex_syntax` crate to parse the regex syntax, although we will only support a
 //! subset of the regex syntax.
 
-use anyhow::{anyhow, Result};
+use crate::{Result, ScanGenError};
 use log::trace;
 use std::time::Instant;
 
@@ -25,7 +25,7 @@ pub(crate) fn parse_regex_syntax(input: &str) -> Result<Ast> {
             trace!("Parsing took {} milliseconds.", elapsed_time.as_millis());
             Ok(syntax_tree)
         }
-        Err(e) => Err(anyhow!(e)),
+        Err(e) => Err(Box::new(ScanGenError::RegexSyntaxError(e))),
     }
 }
 #[cfg(test)]
@@ -49,7 +49,10 @@ mod tests {
         let result = parse_regex_syntax(input);
         assert!(result.is_err());
         // Add assertions here to validate the error message or behavior
-        assert!(matches!(result, Err(anyhow::Error { .. })));
+        assert!(matches!(
+            result,
+            Err(ref e) if matches!(**e, ScanGenError::RegexSyntaxError(_))
+        ));
         assert_eq!(
             result.unwrap_err().to_string(),
             r#"regex parse error:

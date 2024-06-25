@@ -9,7 +9,7 @@ use regex_syntax::ast::Ast;
 pub(crate) type StateId = usize;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Nfa {
+pub struct Nfa {
     states: Vec<NfaState>,
     // Used during NFA construction
     start_state: StateId,
