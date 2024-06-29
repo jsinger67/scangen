@@ -1,7 +1,7 @@
 //! This module contains the source generator for the regex syntax.
 //! The source generator is used to generate code from the regex syntax.
 
-use anyhow::Result;
+use crate::Result;
 use log::trace;
 use std::time::Instant;
 
