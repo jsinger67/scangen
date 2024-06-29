@@ -424,4 +424,32 @@ mod tests {
         assert_eq!(nfa.start_state, 10);
         assert_eq!(nfa.end_state, 11);
     }
+
+    #[test]
+    fn test_nfa_repetition_at_least() {
+        // Create an example AST and convert the AST to an NFA
+        let nfa: Nfa = parse_regex_syntax("a{3,}").unwrap().try_into().unwrap();
+
+        let mut f = File::create("a_at_least_3.dot").unwrap();
+        render_to(&nfa, "a_at_least_3", &mut f);
+
+        // Add assertions here to validate the NFA
+        assert_eq!(nfa.states.len(), 10);
+        assert_eq!(nfa.start_state, 0);
+        assert_eq!(nfa.end_state, 9);
+    }
+
+    #[test]
+    fn test_nfa_repetition_bounded() {
+        // Create an example AST and convert the AST to an NFA
+        let nfa: Nfa = parse_regex_syntax("a{3,5}").unwrap().try_into().unwrap();
+
+        let mut f = File::create("a_bounded_3_5.dot").unwrap();
+        render_to(&nfa, "a_bounded_3_5", &mut f);
+
+        // Add assertions here to validate the NFA
+        assert_eq!(nfa.states.len(), 12);
+        assert_eq!(nfa.start_state, 0);
+        assert_eq!(nfa.end_state, 10);
+    }
 }

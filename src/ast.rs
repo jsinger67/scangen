@@ -61,7 +61,16 @@ impl TryFrom<Ast> for Nfa {
                             nfa_zero_or_more.zero_or_more();
                             nfa.concat(nfa_zero_or_more);
                         }
-                        regex_syntax::ast::RepetitionRange::Bounded(_, _) => todo!(),
+                        regex_syntax::ast::RepetitionRange::Bounded(least, most) => {
+                            for _ in 0..*least {
+                                nfa.concat(nfa2.clone());
+                            }
+                            let mut nfa_zero_or_one: Nfa = nfa2.clone();
+                            nfa_zero_or_one.zero_or_one();
+                            for _ in *least..*most {
+                                nfa.concat(nfa_zero_or_one.clone());
+                            }
+                        }
                     },
                 }
                 Ok(nfa)
