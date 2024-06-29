@@ -1,19 +1,20 @@
 //! This module contails several TryFrom implementations for converting the AST to an NFA.
 
-use anyhow::{anyhow, Result};
 use regex_syntax::ast::Ast;
 
-use crate::nfa::Nfa;
+use crate::{nfa::Nfa, Result, ScanGenError};
 
 impl TryFrom<Ast> for Nfa {
-    // TODO: Use thiserror to create custom errors
-    type Error = anyhow::Error;
+    type Error = Box<ScanGenError>;
 
     fn try_from(ast: Ast) -> Result<Self> {
         let mut nfa = Nfa::new();
         match ast {
             Ast::Empty(_) => Ok(nfa),
-            Ast::Flags(_) => Err(anyhow!("Flags are not supported")),
+            Ast::Flags(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
+                "{:?}",
+                ast
+            )))),
             Ast::Literal(ref l) => {
                 let start_state = nfa.end_state();
                 let end_state = nfa.new_state();
@@ -28,10 +29,22 @@ impl TryFrom<Ast> for Nfa {
                 nfa.add_transition(start_state, Ast::Dot(d.clone()), end_state);
                 Ok(nfa)
             }
-            Ast::Assertion(_) => todo!(),
-            Ast::ClassUnicode(_) => todo!(),
-            Ast::ClassPerl(_) => todo!(),
-            Ast::ClassBracketed(_) => todo!(),
+            Ast::Assertion(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
+                "{:?}",
+                ast
+            )))),
+            Ast::ClassUnicode(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
+                "{:?}",
+                ast
+            )))),
+            Ast::ClassPerl(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
+                "{:?}",
+                ast
+            )))),
+            Ast::ClassBracketed(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
+                "{:?}",
+                ast
+            )))),
             Ast::Repetition(ref r) => {
                 let mut nfa2: Nfa = r.ast.as_ref().clone().try_into()?;
                 match &r.op.kind {
