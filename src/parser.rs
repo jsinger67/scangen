@@ -17,7 +17,7 @@ use regex_syntax::ast::{parse::Parser, Ast};
 /// An `Ast` that represents the abstract syntax tree of the regex syntax.
 /// # Errors
 /// An error is returned if the regex syntax is invalid.
-pub(crate) fn parse_regex_syntax(input: &str) -> Result<Ast> {
+pub fn parse_regex_syntax(input: &str) -> Result<Ast> {
     let now = Instant::now();
     match Parser::new().parse(input) {
         Ok(syntax_tree) => {

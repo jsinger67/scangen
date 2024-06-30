@@ -18,7 +18,7 @@ use regex_syntax::ast::Ast;
 /// An error is returned if the regex contains unsupported syntax.
 ///
 /// # Example
-pub(crate) fn generate_code(_ast: &Ast, _output: &mut dyn std::io::Write) -> Result<()> {
+pub fn generate_code(_ast: &Ast, _output: &mut dyn std::io::Write) -> Result<()> {
     let now = Instant::now();
     // Add code generation logic here
     let elapsed_time = now.elapsed();

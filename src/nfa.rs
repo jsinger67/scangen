@@ -6,7 +6,7 @@ use std::vec;
 
 use regex_syntax::ast::Ast;
 
-pub(crate) type StateId = usize;
+use crate::StateId;
 
 #[derive(Debug, Clone)]
 pub struct Nfa {
@@ -20,25 +20,25 @@ pub struct Nfa {
 impl Nfa {
     pub(crate) fn new() -> Self {
         Self {
-            states: vec![NfaState::new(0)],
-            start_state: 0,
-            end_state: 0,
+            states: vec![NfaState::default()],
+            start_state: StateId::default(),
+            end_state: StateId::default(),
         }
     }
 
     // Returns true if the NFA is empty, i.e. no states and no transitions have been added.
     pub(crate) fn is_empty(&self) -> bool {
-        self.start_state == 0
-            && self.end_state == 0
+        self.start_state == StateId::default()
+            && self.end_state == StateId::default()
             && self.states.len() == 1
             && self.states[0].is_empty()
     }
 
-    pub(crate) fn start_state(&self) -> usize {
+    pub(crate) fn start_state(&self) -> StateId {
         self.start_state
     }
 
-    pub(crate) fn end_state(&self) -> usize {
+    pub(crate) fn end_state(&self) -> StateId {
         self.end_state
     }
 
@@ -50,31 +50,33 @@ impl Nfa {
         self.states.push(state);
     }
 
-    pub(crate) fn set_start_state(&mut self, state: usize) {
+    pub(crate) fn set_start_state(&mut self, state: StateId) {
         self.start_state = state;
     }
 
-    pub(crate) fn set_end_state(&mut self, state: usize) {
+    pub(crate) fn set_end_state(&mut self, state: StateId) {
         self.end_state = state;
     }
 
-    pub(crate) fn add_transition(&mut self, from: usize, chars: Ast, to: usize) {
-        self.states[from].transitions.push(NfaTransition {
-            chars,
-            target_state: to,
-        });
+    pub(crate) fn add_transition(&mut self, from: StateId, chars: Ast, target_state: StateId) {
+        self.states[from.as_index()]
+            .transitions
+            .push(NfaTransition {
+                chars,
+                target_state,
+            });
     }
 
-    pub(crate) fn add_epsilon_transition(&mut self, from: usize, to: usize) {
-        self.states[from]
+    pub(crate) fn add_epsilon_transition(&mut self, from: StateId, target_state: StateId) {
+        self.states[from.as_index()]
             .epsilon_transitions
-            .push(EpsilonTransition { target_state: to });
+            .push(EpsilonTransition { target_state });
     }
 
-    pub(crate) fn new_state(&mut self) -> usize {
+    pub(crate) fn new_state(&mut self) -> StateId {
         let state = self.states.len();
-        self.add_state(NfaState::new(state));
-        state
+        self.add_state(NfaState::new(StateId::new(state)));
+        StateId::new(state)
     }
 
     pub(crate) fn offset_states(&mut self, offset: usize) {
@@ -193,7 +195,7 @@ impl Nfa {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct NfaState {
     state: StateId,
     epsilon_transitions: Vec<EpsilonTransition>,
@@ -201,7 +203,7 @@ pub(crate) struct NfaState {
 }
 
 impl NfaState {
-    pub(crate) fn new(state: usize) -> Self {
+    pub(crate) fn new(state: StateId) -> Self {
         Self {
             state,
             epsilon_transitions: Vec::new(),
@@ -213,7 +215,7 @@ impl NfaState {
         self.transitions.is_empty() && self.epsilon_transitions.is_empty()
     }
 
-    pub(crate) fn state(&self) -> usize {
+    pub(crate) fn id(&self) -> StateId {
         self.state
     }
 
@@ -292,8 +294,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 2);
-        assert_eq!(nfa.start_state, 0);
-        assert_eq!(nfa.end_state, 1);
+        assert_eq!(nfa.start_state.as_usize(), 0);
+        assert_eq!(nfa.end_state.as_usize(), 1);
     }
 
     #[test]
@@ -306,8 +308,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
-        assert_eq!(nfa.start_state, 0);
-        assert_eq!(nfa.end_state, 3);
+        assert_eq!(nfa.start_state.as_usize(), 0);
+        assert_eq!(nfa.end_state.as_usize(), 3);
     }
 
     #[test]
@@ -319,8 +321,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa1.states.len(), 4);
-        assert_eq!(nfa1.start_state, 0);
-        assert_eq!(nfa1.end_state, 3);
+        assert_eq!(nfa1.start_state.as_usize(), 0);
+        assert_eq!(nfa1.end_state.as_usize(), 3);
     }
 
     #[test]
@@ -335,8 +337,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa1.states.len(), 6);
-        assert_eq!(nfa1.start_state, 4);
-        assert_eq!(nfa1.end_state, 5);
+        assert_eq!(nfa1.start_state.as_usize(), 4);
+        assert_eq!(nfa1.end_state.as_usize(), 5);
     }
 
     #[test]
@@ -350,8 +352,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
-        assert_eq!(nfa.start_state, 2);
-        assert_eq!(nfa.end_state, 3);
+        assert_eq!(nfa.start_state.as_usize(), 2);
+        assert_eq!(nfa.end_state.as_usize(), 3);
     }
 
     #[test]
@@ -365,8 +367,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 3);
-        assert_eq!(nfa.start_state, 2);
-        assert_eq!(nfa.end_state, 1);
+        assert_eq!(nfa.start_state.as_usize(), 2);
+        assert_eq!(nfa.end_state.as_usize(), 1);
     }
 
     #[test]
@@ -380,8 +382,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
-        assert_eq!(nfa.start_state, 2);
-        assert_eq!(nfa.end_state, 3);
+        assert_eq!(nfa.start_state.as_usize(), 2);
+        assert_eq!(nfa.end_state.as_usize(), 3);
     }
 
     #[test]
@@ -395,8 +397,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
-        assert_eq!(nfa.start_state, 2);
-        assert_eq!(nfa.end_state, 3);
+        assert_eq!(nfa.start_state.as_usize(), 2);
+        assert_eq!(nfa.end_state.as_usize(), 3);
     }
 
     #[test]
@@ -409,8 +411,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 14);
-        assert_eq!(nfa.start_state, 6);
-        assert_eq!(nfa.end_state, 13);
+        assert_eq!(nfa.start_state.as_usize(), 6);
+        assert_eq!(nfa.end_state.as_usize(), 13);
     }
 
     #[test]
@@ -421,8 +423,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 2);
-        assert_eq!(nfa.start_state, 10);
-        assert_eq!(nfa.end_state, 11);
+        assert_eq!(nfa.start_state.as_usize(), 10);
+        assert_eq!(nfa.end_state.as_usize(), 11);
     }
 
     #[test]
@@ -435,8 +437,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 10);
-        assert_eq!(nfa.start_state, 0);
-        assert_eq!(nfa.end_state, 9);
+        assert_eq!(nfa.start_state.as_usize(), 0);
+        assert_eq!(nfa.end_state.as_usize(), 9);
     }
 
     #[test]
@@ -449,8 +451,8 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 12);
-        assert_eq!(nfa.start_state, 0);
-        assert_eq!(nfa.end_state, 10);
+        assert_eq!(nfa.start_state.as_usize(), 0);
+        assert_eq!(nfa.end_state.as_usize(), 10);
     }
 
     #[test]
@@ -467,7 +469,7 @@ mod tests {
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 2);
-        assert_eq!(nfa.start_state, 0);
-        assert_eq!(nfa.end_state, 1);
+        assert_eq!(nfa.start_state.as_usize(), 0);
+        assert_eq!(nfa.end_state.as_usize(), 1);
     }
 }

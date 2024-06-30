@@ -5,10 +5,12 @@
 
 /// The parser module contains the regex syntax parser.
 mod parser;
+pub use parser::parse_regex_syntax;
 
 /// The generator module contains the code generator.
 /// The code generator generates code from the regex syntax.
 mod generator;
+pub use generator::generate_code;
 
 /// The nfa module contains the NFA implementation.
 mod nfa;
@@ -23,3 +25,7 @@ pub use dot::render_to;
 /// Module with error definitions
 mod errors;
 pub use errors::{Result, ScanGenError};
+
+/// Module that provides a type for integer ids that can also be used to index into slices.
+mod index;
+pub use index::{Index, StateId, TerminalId};
