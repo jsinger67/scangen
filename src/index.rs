@@ -6,7 +6,7 @@ pub struct Index(usize);
 impl Index {
     /// Create a new index.
     #[inline]
-    pub fn new(index: usize) -> Self {
+    pub(crate) fn new(index: usize) -> Self {
         Index(index)
     }
 
@@ -78,7 +78,7 @@ pub struct StateId(Index);
 impl StateId {
     /// Create a new state id.
     #[inline]
-    pub fn new(index: usize) -> Self {
+    pub(crate) fn new(index: usize) -> Self {
         StateId(Index::new(index))
     }
 
@@ -123,10 +123,10 @@ pub struct TerminalId(Index);
 
 impl TerminalId {
     /// Create a new terminal id.
-    #[inline]
-    pub fn new(index: usize) -> Self {
-        TerminalId(Index::new(index))
-    }
+    // #[inline]
+    // pub(crate) fn new(index: usize) -> Self {
+    //     TerminalId(Index::new(index))
+    // }
 
     /// Get the terminal id as usize.
     #[inline]
