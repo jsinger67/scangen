@@ -12,7 +12,7 @@ impl TryFrom<Ast> for Nfa {
         match ast {
             Ast::Empty(_) => Ok(nfa),
             Ast::Flags(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:?}",
+                "{:#?}",
                 ast
             )))),
             Ast::Literal(ref l) => {
@@ -30,19 +30,19 @@ impl TryFrom<Ast> for Nfa {
                 Ok(nfa)
             }
             Ast::Assertion(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:?}",
+                "{:#?}",
                 ast
             )))),
             Ast::ClassUnicode(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:?}",
+                "{:#?}",
                 ast
             )))),
             Ast::ClassPerl(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:?}",
+                "{:#?}",
                 ast
             )))),
             Ast::ClassBracketed(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:?}",
+                "{:#?}",
                 ast
             )))),
             Ast::Repetition(ref r) => {
