@@ -452,4 +452,21 @@ mod tests {
         assert_eq!(nfa.start_state, 0);
         assert_eq!(nfa.end_state, 10);
     }
+
+    #[test]
+    fn test_character_class_expression() {
+        // Create an example AST and convert the AST to an NFA
+        let nfa: Nfa = parse_regex_syntax(r"[[:digit:]]")
+            .unwrap()
+            .try_into()
+            .unwrap();
+
+        let mut f = File::create("digit.dot").unwrap();
+        render_to(&nfa, "digit", &mut f);
+
+        // Add assertions here to validate the NFA
+        assert_eq!(nfa.states.len(), 2);
+        assert_eq!(nfa.start_state, 0);
+        assert_eq!(nfa.end_state, 1);
+    }
 }
