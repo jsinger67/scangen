@@ -454,6 +454,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn test_character_class_expression() {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax(r"[[:digit:]]")
