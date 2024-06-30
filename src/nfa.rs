@@ -8,7 +8,7 @@ use regex_syntax::ast::Ast;
 
 use crate::StateId;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Nfa {
     states: Vec<NfaState>,
     // Used during NFA construction
@@ -79,12 +79,14 @@ impl Nfa {
         StateId::new(state)
     }
 
-    pub(crate) fn offset_states(&mut self, offset: usize) {
+    /// Apply an offset to every state number.
+    pub(crate) fn shift_ids(&mut self, offset: usize) -> (StateId, StateId) {
         for state in self.states.iter_mut() {
             state.offset(offset);
         }
         self.start_state += offset;
         self.end_state += offset;
+        (self.start_state, self.end_state)
     }
 
     /// Concatenates the current NFA with another NFA.
@@ -98,16 +100,16 @@ impl Nfa {
             return;
         }
 
-        nfa.offset_states(self.states.len());
-
-        // Move the states of the NFA being concatenated to the current NFA
-        self.states.append(nfa.states.as_mut());
+        // Apply an offset to the state numbers of the given NFA
+        let (nfa_start_state, nfa_end_state) = nfa.shift_ids(self.states.len());
+        // Move the states of the given NFA to the current NFA
+        self.append(nfa);
 
         // Connect the end state of the current NFA to the start state of the new NFA
-        self.add_epsilon_transition(self.end_state, nfa.start_state);
+        self.add_epsilon_transition(self.end_state, nfa_start_state);
 
         // Update the end state of the current NFA to the end state of the new NFA
-        self.set_end_state(nfa.end_state);
+        self.set_end_state(nfa_end_state);
     }
 
     pub(crate) fn alternation(&mut self, mut nfa: Nfa) {
@@ -120,24 +122,25 @@ impl Nfa {
             return;
         }
 
-        nfa.offset_states(self.states.len());
+        // Apply an offset to the state numbers of the given NFA
+        let (nfa_start_state, nfa_end_state) = nfa.shift_ids(self.states.len());
 
-        // Move the states of the NFA being concatenated to the current NFA
-        self.states.append(nfa.states.as_mut());
+        // Move the states of given the NFA to the current NFA
+        self.append(nfa);
 
         // Create a new start state
         let start_state = self.new_state();
         // Connect the new start state to the start state of the current NFA
         self.add_epsilon_transition(start_state, self.start_state);
         // Connect the new start state to the start state of the new NFA
-        self.add_epsilon_transition(start_state, nfa.start_state);
+        self.add_epsilon_transition(start_state, nfa_start_state);
 
         // Create a new end state
         let end_state = self.new_state();
         // Connect the end state of the current NFA to the new end state
         self.add_epsilon_transition(self.end_state, end_state);
         // Connect the end state of the new NFA to the new end state
-        self.add_epsilon_transition(nfa.end_state, end_state);
+        self.add_epsilon_transition(nfa_end_state, end_state);
 
         // Update the start and end states of the current NFA
         self.set_start_state(start_state);
@@ -193,6 +196,17 @@ impl Nfa {
         self.set_start_state(start_state);
         self.set_end_state(end_state);
     }
+
+    /// Move the states of the given NFA to the current NFA and thereby consume the NFA.
+    pub(crate) fn append(&mut self, mut nfa: Nfa) {
+        self.states.append(nfa.states.as_mut());
+        // Check the index constraints
+        debug_assert!(self
+            .states
+            .iter()
+            .enumerate()
+            .all(|(i, s)| s.id().as_usize() == i));
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -227,7 +241,7 @@ impl NfaState {
         &self.epsilon_transitions
     }
 
-    /// Apply an offset to the state any number.
+    /// Apply an offset to every state number.
     pub(crate) fn offset(&mut self, offset: usize) {
         self.state += offset;
         for transition in self.transitions.iter_mut() {
@@ -419,7 +433,7 @@ mod tests {
     fn test_nfa_offset_states() {
         // Create an example AST and convert the AST to an NFA
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
-        nfa.offset_states(10);
+        nfa.shift_ids(10);
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 2);

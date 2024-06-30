@@ -123,10 +123,10 @@ pub struct TerminalId(Index);
 
 impl TerminalId {
     /// Create a new terminal id.
-    // #[inline]
-    // pub(crate) fn new(index: usize) -> Self {
-    //     TerminalId(Index::new(index))
-    // }
+    #[inline]
+    pub(crate) fn new(index: usize) -> Self {
+        TerminalId(Index::new(index))
+    }
 
     /// Get the terminal id as usize.
     #[inline]
