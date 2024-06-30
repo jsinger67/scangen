@@ -68,10 +68,18 @@ impl MultiPatternNfa {
 
 #[cfg(test)]
 mod tests {
-    use crate::dot::render_multi_to;
-    use std::{fs::File, result};
+    use crate::dot::multi_render_to;
+    use std::fs::File;
 
     use super::*;
+
+    // A macro that simplifies the rendering of a dot file for test purposes
+    macro_rules! multi_render_to {
+        ($nfa:expr, $label:expr) => {
+            let mut f = File::create(concat!($label, ".dot")).unwrap();
+            multi_render_to($nfa, $label, &mut f);
+        };
+    }
 
     #[test]
     fn test_multi_pattern_nfa() {
@@ -83,8 +91,7 @@ mod tests {
             &[(StateId::new(2), terminal_id)].iter().cloned().collect()
         );
 
-        let mut f = File::create("multi_a.dot").unwrap();
-        render_multi_to(&multi_pattern_nfa, "multi_a", &mut f);
+        multi_render_to!(&multi_pattern_nfa, "multi_a");
 
         let terminal_id = multi_pattern_nfa.add_pattern("b").unwrap();
         assert_eq!(
@@ -92,8 +99,7 @@ mod tests {
             &["a".to_string(), "b".to_string()]
         );
 
-        let mut f = File::create("multi_a_or_b.dot").unwrap();
-        render_multi_to(&multi_pattern_nfa, "multi_a_or_b", &mut f);
+        multi_render_to!(&multi_pattern_nfa, "multi_a_or_b");
 
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
@@ -110,8 +116,7 @@ mod tests {
         // The pattern "a" already exists, so the terminal id should be the same as before
         assert_eq!(terminal_id, TerminalId::new(0));
 
-        let mut f = File::create("multi_a_or_b2.dot").unwrap();
-        render_multi_to(&multi_pattern_nfa, "multi_a_or_b2", &mut f);
+        multi_render_to!(&multi_pattern_nfa, "multi_a_or_b2");
 
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
@@ -132,8 +137,9 @@ mod tests {
         assert!(result.is_ok());
         let result = multi_pattern_nfa.add_pattern("(a|b)*abb");
         assert!(result.is_ok());
-        let mut f = File::create("multi_complex.dot").unwrap();
-        render_multi_to(&multi_pattern_nfa, "multi_complex", &mut f);
+
+        multi_render_to!(&multi_pattern_nfa, "multi_complex");
+
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[

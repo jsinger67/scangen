@@ -298,6 +298,14 @@ mod tests {
 
     use super::*;
 
+    // A macro that simplifies the rendering of a dot file for test purposes
+    macro_rules! render_to {
+        ($nfa:expr, $label:expr) => {
+            let mut f = File::create(concat!($label, ".dot")).unwrap();
+            render_to($nfa, $label, &mut f);
+        };
+    }
+
     #[test]
     fn test_nfa_from_ast() {
         // Create an example AST
@@ -317,8 +325,7 @@ mod tests {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax("ab").unwrap().try_into().unwrap();
 
-        let mut f = File::create("ab.dot").unwrap();
-        render_to(&nfa, "ab", &mut f);
+        render_to!(&nfa, "ab");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -346,8 +353,7 @@ mod tests {
         let nfa2: Nfa = parse_regex_syntax("b").unwrap().try_into().unwrap();
         nfa1.alternation(nfa2);
 
-        let mut f = File::create("a_or_b.dot").unwrap();
-        render_to(&nfa1, "a|b", &mut f);
+        render_to!(&nfa1, "a_or_b");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa1.states.len(), 6);
@@ -361,8 +367,7 @@ mod tests {
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
         nfa.zero_or_more();
 
-        let mut f = File::create("a_many.dot").unwrap();
-        render_to(&nfa, "a", &mut f);
+        render_to!(&nfa, "a_many");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -376,8 +381,7 @@ mod tests {
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
         nfa.zero_or_one();
 
-        let mut f = File::create("a_zero_or_one.dot").unwrap();
-        render_to(&nfa, "a", &mut f);
+        render_to!(&nfa, "a_zero_or_one");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 3);
@@ -391,8 +395,7 @@ mod tests {
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
         nfa.one_or_more();
 
-        let mut f = File::create("a_one_or_more.dot").unwrap();
-        render_to(&nfa, "a", &mut f);
+        render_to!(&nfa, "a_one_or_more");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -406,8 +409,7 @@ mod tests {
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
         nfa.zero_or_more();
 
-        let mut f = File::create("a_zero_or_more.dot").unwrap();
-        render_to(&nfa, "a", &mut f);
+        render_to!(&nfa, "a_zero_or_more");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -420,8 +422,7 @@ mod tests {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax("(a|b)*abb").unwrap().try_into().unwrap();
 
-        let mut f = File::create("complex.dot").unwrap();
-        render_to(&nfa, "(a|b)*abb", &mut f);
+        render_to!(&nfa, "complex");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 14);
@@ -446,8 +447,7 @@ mod tests {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax("a{3,}").unwrap().try_into().unwrap();
 
-        let mut f = File::create("a_at_least_3.dot").unwrap();
-        render_to(&nfa, "a_at_least_3", &mut f);
+        render_to!(&nfa, "a_at_least_3");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 10);
@@ -460,8 +460,7 @@ mod tests {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax("a{3,5}").unwrap().try_into().unwrap();
 
-        let mut f = File::create("a_bounded_3_5.dot").unwrap();
-        render_to(&nfa, "a_bounded_3_5", &mut f);
+        render_to!(&nfa, "a_bounded_3_5");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 12);
@@ -478,8 +477,7 @@ mod tests {
             .try_into()
             .unwrap();
 
-        let mut f = File::create("digit.dot").unwrap();
-        render_to(&nfa, "digit", &mut f);
+        render_to!(&nfa, "digit");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 2);

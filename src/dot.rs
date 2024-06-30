@@ -49,7 +49,8 @@ pub fn render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
     }
 }
 
-pub fn render_multi_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mut W) {
+/// Render the multi-pattern NFA to a graphviz dot format.
+pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();
@@ -70,7 +71,12 @@ pub fn render_multi_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
                 source_node
                     .set_color(dot_writer::Color::Red)
                     .set_pen_width(3.0)
-                    .set_label(&format!("{} (T:{})", state.id(), terminal_id));
+                    .set_label(&format!(
+                        "{} '{}':{}",
+                        state.id(),
+                        nfa.pattern()[terminal_id.as_index()],
+                        terminal_id,
+                    ));
             }
             source_node.id()
         };
