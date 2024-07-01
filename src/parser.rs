@@ -69,4 +69,14 @@ error: unclosed character class"#
         let result = parse_regex_syntax(input);
         assert!(result.is_ok());
     }
+
+    // This may hinder the use of the regex_syntax crate because it does not support lookaround
+    // assertions. We'll have to evaluate if we can live with this limitation.
+    #[test]
+    #[should_panic(expected = "RegexSyntaxError(Error { kind: UnsupportedLookAround")]
+    fn test_a_only_if_followed_by_b() {
+        // Regex syntax that matches 'a' only if it is followed by 'b'
+        let input = r"a(?=b)";
+        let _ = parse_regex_syntax(input).unwrap();
+    }
 }

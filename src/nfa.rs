@@ -468,8 +468,9 @@ mod tests {
         assert_eq!(nfa.end_state.as_usize(), 10);
     }
 
+    // Ascii character class are not yet implemented
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "UnsupportedFeature")]
     fn test_character_class_expression() {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax(r"[[:digit:]]")
