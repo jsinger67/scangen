@@ -28,9 +28,15 @@ pub use errors::{Result, ScanGenError};
 
 /// Module that provides a type for integer ids that can also be used to index into slices.
 mod index;
-pub use index::{Index, PatternId, StateId};
+pub use index::{CharClassId, Index, PatternId, StateId};
 
 /// Module that provides a type for a multi-pattern NFA
 /// that can be used to match multiple patterns in parallel.
 mod multi_pattern_nfa;
 pub use multi_pattern_nfa::MultiPatternNfa;
+
+/// Module that provides functions and types related to character classes.
+mod character_class;
+
+/// Module that provides function type that can be used to decide if a character is in a character class.
+mod match_function;

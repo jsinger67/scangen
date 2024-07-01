@@ -274,7 +274,7 @@ impl NfaTransition {
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct EpsilonTransition {
-    target_state: StateId,
+    pub(crate) target_state: StateId,
 }
 
 impl EpsilonTransition {

@@ -61,21 +61,22 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
         let source_id = {
             let mut source_node = digraph.node_auto();
             source_node.set_label(&state.id().to_string());
-            if state.id() == nfa.nfa().start_state() {
+            // The start state of the multi-pattern NFA is always 0
+            if state.id().as_usize() == 0 {
                 source_node
                     .set_shape(dot_writer::Shape::Circle)
                     .set_color(dot_writer::Color::Blue)
                     .set_pen_width(3.0);
             }
-            if let Some(terminal_id) = nfa.accepting_states().get(&state.id()) {
+            if let Some(pattern_id) = nfa.accepting_states().get(&state.id()) {
                 source_node
                     .set_color(dot_writer::Color::Red)
                     .set_pen_width(3.0)
                     .set_label(&format!(
                         "{} '{}':{}",
                         state.id(),
-                        nfa.patterns()[terminal_id.as_index()],
-                        terminal_id,
+                        nfa.patterns()[pattern_id.as_index()],
+                        pattern_id,
                     ));
             }
             source_node.id()
@@ -85,7 +86,11 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
             digraph
                 .edge(source_id.clone(), &format!("node_{}", target_state))
                 .attributes()
-                .set_label(&format!("{}", transition.chars()));
+                .set_label(&format!(
+                    "{}:{}",
+                    nfa.char_classes()[transition.chars().as_index()].ast.0,
+                    transition.chars()
+                ));
         }
         for epsilon_transition in state.epsilon_transitions() {
             let target_state = epsilon_transition.target_state();
