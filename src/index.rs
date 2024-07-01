@@ -119,13 +119,13 @@ impl std::fmt::Display for StateId {
 
 /// The identifier for a terminal the scanner has matched when reaching an accepting state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct TerminalId(Index);
+pub struct PatternId(Index);
 
-impl TerminalId {
+impl PatternId {
     /// Create a new terminal id.
     #[inline]
     pub(crate) fn new(index: usize) -> Self {
-        TerminalId(Index::new(index))
+        PatternId(Index::new(index))
     }
 
     /// Get the terminal id as usize.
@@ -141,23 +141,23 @@ impl TerminalId {
     }
 }
 
-impl core::ops::Add<usize> for TerminalId {
-    type Output = TerminalId;
+impl core::ops::Add<usize> for PatternId {
+    type Output = PatternId;
 
     #[inline]
     fn add(self, rhs: usize) -> Self::Output {
-        TerminalId(self.0 + rhs)
+        PatternId(self.0 + rhs)
     }
 }
 
-impl core::ops::AddAssign<usize> for TerminalId {
+impl core::ops::AddAssign<usize> for PatternId {
     #[inline]
     fn add_assign(&mut self, rhs: usize) {
         self.0 += rhs;
     }
 }
 
-impl std::fmt::Display for TerminalId {
+impl std::fmt::Display for PatternId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }

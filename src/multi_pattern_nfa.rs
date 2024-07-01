@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
-use crate::{nfa::Nfa, parse_regex_syntax, Result, StateId, TerminalId};
+use crate::{nfa::Nfa, parse_regex_syntax, Result, StateId, PatternId};
 
 /// A NFA that can match multiple patterns in parallel.
 #[derive(Debug, Default)]
 pub struct MultiPatternNfa {
     nfa: Nfa,
     patterns: Vec<String>,
-    accepting_states: BTreeMap<StateId, TerminalId>,
+    accepting_states: BTreeMap<StateId, PatternId>,
 }
 
 impl MultiPatternNfa {
@@ -25,25 +25,25 @@ impl MultiPatternNfa {
         &self.nfa
     }
 
-    /// Get the pattern.
-    pub fn pattern(&self) -> &[String] {
+    /// Get an immutable reference of the patterns.
+    pub fn patterns(&self) -> &[String] {
         &self.patterns
     }
 
     /// Get the accepting states.
-    pub fn accepting_states(&self) -> &BTreeMap<StateId, TerminalId> {
+    pub fn accepting_states(&self) -> &BTreeMap<StateId, PatternId> {
         &self.accepting_states
     }
 
     /// Add a pattern to the multi-pattern NFA.
-    pub fn add_pattern(&mut self, pattern: &str) -> Result<TerminalId> {
+    pub fn add_pattern(&mut self, pattern: &str) -> Result<PatternId> {
         if let Some(id) = self.patterns.iter().position(|p| p == pattern) {
             // If the pattern already exists, return the terminal id
             // Not sure if this should rather be an error
-            return Ok(TerminalId::new(id));
+            return Ok(PatternId::new(id));
         }
 
-        let terminal_id = TerminalId::new(self.patterns.len());
+        let terminal_id = PatternId::new(self.patterns.len());
         let mut nfa: Nfa = parse_regex_syntax(pattern)?.try_into()?;
         self.patterns.push(pattern.to_string());
 
@@ -85,7 +85,7 @@ mod tests {
     fn test_multi_pattern_nfa() {
         let mut multi_pattern_nfa = MultiPatternNfa::new();
         let terminal_id = multi_pattern_nfa.add_pattern("a").unwrap();
-        assert_eq!(multi_pattern_nfa.pattern(), &["a".to_string()]);
+        assert_eq!(multi_pattern_nfa.patterns(), &["a".to_string()]);
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[(StateId::new(2), terminal_id)].iter().cloned().collect()
@@ -95,7 +95,7 @@ mod tests {
 
         let terminal_id = multi_pattern_nfa.add_pattern("b").unwrap();
         assert_eq!(
-            multi_pattern_nfa.pattern(),
+            multi_pattern_nfa.patterns(),
             &["a".to_string(), "b".to_string()]
         );
 
@@ -104,7 +104,7 @@ mod tests {
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[
-                (StateId::new(2), TerminalId::new(0)),
+                (StateId::new(2), PatternId::new(0)),
                 (StateId::new(4), terminal_id)
             ]
             .iter()
@@ -114,7 +114,7 @@ mod tests {
 
         let terminal_id = multi_pattern_nfa.add_pattern("a").unwrap();
         // The pattern "a" already exists, so the terminal id should be the same as before
-        assert_eq!(terminal_id, TerminalId::new(0));
+        assert_eq!(terminal_id, PatternId::new(0));
 
         multi_render_to!(&multi_pattern_nfa, "multi_a_or_b2");
 
@@ -122,7 +122,7 @@ mod tests {
             multi_pattern_nfa.accepting_states(),
             &[
                 (StateId::new(2), terminal_id),
-                (StateId::new(4), TerminalId::new(1))
+                (StateId::new(4), PatternId::new(1))
             ]
             .iter()
             .cloned()
@@ -143,8 +143,8 @@ mod tests {
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[
-                (StateId::new(11), TerminalId::new(0)),
-                (StateId::new(25), TerminalId::new(1))
+                (StateId::new(11), PatternId::new(0)),
+                (StateId::new(25), PatternId::new(1))
             ]
             .iter()
             .cloned()

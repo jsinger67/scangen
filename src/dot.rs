@@ -74,7 +74,7 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
                     .set_label(&format!(
                         "{} '{}':{}",
                         state.id(),
-                        nfa.pattern()[terminal_id.as_index()],
+                        nfa.patterns()[terminal_id.as_index()],
                         terminal_id,
                     ));
             }
