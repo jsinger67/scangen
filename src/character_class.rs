@@ -1,4 +1,4 @@
-use regex_syntax::ast::{Ast, Literal, Position, Span};
+use regex_syntax::ast::{Ast, Position, Span};
 
 use crate::{match_function::MatchFunction, CharClassId};
 
@@ -63,76 +63,25 @@ impl Default for CharacterClass {
     }
 }
 
-/// A comparator for the AST of a character class. It only compares AST types that are relevant for
-/// handling of character classes.
+/// A comparable AST in regard of a character class.
+/// It only compares AST types that are relevant for handling of character classes.
 pub(crate) struct ComparableAst(pub(crate) Ast);
 
 impl PartialEq for ComparableAst {
     fn eq(&self, other: &Self) -> bool {
-        match &self.0 {
-            Ast::Empty(_) => matches!(other.0, Ast::Empty(_)),
-            Ast::Literal(ll) => {
-                let Literal { kind, c, .. } = &**ll;
-                match &other.0 {
-                    Ast::Literal(lr) => {
-                        let Literal {
-                            kind: kr, c: cr, ..
-                        } = &**lr;
-                        kind == kr && c == cr
-                    }
-                    _ => false,
-                }
+        match (&self.0, &other.0) {
+            (Ast::Empty(_), Ast::Empty(_))
+            | (Ast::Dot(_), Ast::Dot(_))
+            | (Ast::Literal(_), Ast::Literal(_))
+            | (Ast::ClassUnicode(_), Ast::ClassUnicode(_))
+            | (Ast::ClassPerl(_), Ast::ClassPerl(_))
+            | (Ast::ClassBracketed(_), Ast::ClassBracketed(_)) => {
+                // Compare the string representation of the ASTs.
+                // This is a workaround because the AST's implementation of PartialEq also
+                // compares the span, which is not relevant for the character class handling here.
+                self.0.to_string() == other.0.to_string()
             }
-            Ast::ClassUnicode(cl) => {
-                let regex_syntax::ast::ClassUnicode { kind, negated, .. } = &**cl;
-                match &other.0 {
-                    Ast::ClassUnicode(cr) => {
-                        let regex_syntax::ast::ClassUnicode {
-                            kind: kr,
-                            negated: nr,
-                            ..
-                        } = &**cr;
-                        kind == kr && negated == nr
-                    }
-                    _ => false,
-                }
-            }
-            Ast::ClassPerl(cl) => {
-                let regex_syntax::ast::ClassPerl { kind, negated, .. } = &**cl;
-                match &other.0 {
-                    Ast::ClassPerl(cr) => {
-                        let regex_syntax::ast::ClassPerl {
-                            kind: kr,
-                            negated: nr,
-                            ..
-                        } = &**cr;
-                        kind == kr && negated == nr
-                    }
-                    _ => false,
-                }
-            }
-            Ast::ClassBracketed(cl) => {
-                let regex_syntax::ast::ClassBracketed { kind, negated, .. } = &**cl;
-                match &other.0 {
-                    Ast::ClassBracketed(cr) => {
-                        let regex_syntax::ast::ClassBracketed {
-                            kind: kr,
-                            negated: nr,
-                            ..
-                        } = &**cr;
-                        kind == kr && negated == nr
-                    }
-                    _ => false,
-                }
-            }
-            Ast::Dot(_) => matches!(other.0, Ast::Dot(_)),
-
-            Ast::Flags(_)
-            | Ast::Assertion(_)
-            | Ast::Repetition(_)
-            | Ast::Group(_)
-            | Ast::Alternation(_)
-            | Ast::Concat(_) => false,
+            _ => false,
         }
     }
 }
