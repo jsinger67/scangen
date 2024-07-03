@@ -229,4 +229,84 @@ mod tests {
         assert_eq!(dfa.accepting_states().len(), 4);
         assert_eq!(dfa.char_classes().len(), 2);
     }
+
+    #[test]
+    fn test_dfa_from_nfa_2() {
+        let mut multi_pattern_nfa = MultiPatternNfa::new();
+        let result = multi_pattern_nfa.add_pattern("in");
+        assert!(result.is_ok());
+        let result = multi_pattern_nfa.add_pattern("int");
+        assert!(result.is_ok());
+
+        let dfa = Dfa::from(multi_pattern_nfa);
+
+        dfa_render_to!(&dfa, "dfa_from_nfa_2");
+
+        assert_eq!(dfa.states().len(), 4);
+        assert_eq!(dfa.patterns().len(), 2);
+        assert_eq!(dfa.accepting_states().len(), 2);
+        assert_eq!(dfa.char_classes().len(), 3);
+    }
+
+    #[test]
+    fn test_dfa_from_nfa_3() {
+        let mut multi_pattern_nfa = MultiPatternNfa::new();
+        let result = multi_pattern_nfa.add_patterns(vec![
+            "\\r\\n|\\r|\\n",
+            "[\\s--\\r\\n]+",
+            "(//.*(\\r\\n|\\r|\\n|$))",
+            "(/\\*.*?\\*/)",
+            "%start",
+            "%title",
+            "%comment",
+            "%user_type",
+            "=",
+            "%grammar_type",
+            "%line_comment",
+            "%block_comment",
+            "%auto_newline_off",
+            "%auto_ws_off",
+            "%on",
+            "%enter",
+            "%%",
+            "::",
+            ":",
+            ";",
+            "\\|",
+            "<",
+            ">",
+            "\"(\\\\.|[^\\\\])*?\"",
+            "'(\\\\'|[^'])*?'",
+            "\\u{2F}(\\\\.|[^\\\\])*?\\u{2F}",
+            "\\(",
+            "\\)",
+            "\\[",
+            "\\]",
+            "\\{",
+            "\\}",
+            "[a-zA-Z_][a-zA-Z0-9_]*",
+            "%scanner",
+            ",",
+            "%sc",
+            "%push",
+            "%pop",
+            "\\^",
+            ".",
+        ]);
+        match result {
+            Ok(_) => {}
+            Err(e) => {
+                panic!("Error: {}", e);
+            }
+        }
+
+        let dfa = Dfa::from(multi_pattern_nfa);
+
+        dfa_render_to!(&dfa, "dfa_from_nfa_3");
+
+        assert_eq!(dfa.states().len(), 155);
+        assert_eq!(dfa.patterns().len(), 40);
+        assert_eq!(dfa.accepting_states().len(), 46);
+        assert_eq!(dfa.char_classes().len(), 51);
+    }
 }

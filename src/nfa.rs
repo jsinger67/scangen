@@ -470,7 +470,6 @@ mod tests {
 
     // Ascii character class are not yet implemented
     #[test]
-    #[should_panic(expected = "UnsupportedFeature")]
     fn test_character_class_expression() {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax(r"[[:digit:]]")

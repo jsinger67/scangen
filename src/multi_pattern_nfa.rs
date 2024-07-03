@@ -78,6 +78,18 @@ impl MultiPatternNfa {
         Ok(pattern_id)
     }
 
+    /// Add multiple patterns to the multi-pattern NFA.
+    pub fn add_patterns<I, S>(&mut self, patterns: I) -> Result<()>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        for pattern in patterns {
+            self.add_pattern(pattern.as_ref())?;
+        }
+        Ok(())
+    }
+
     /// Calculate the epsilon closure of a state.
     pub(crate) fn epsilon_closure(&self, state: StateId) -> Vec<StateId> {
         self.nfa.epsilon_closure(state)
@@ -338,5 +350,62 @@ mod tests {
             .cloned()
             .collect()
         );
+    }
+
+    #[test]
+    fn test_add_multiple_patterns() {
+        init();
+
+        let mut multi_pattern_nfa = MultiPatternNfa::new();
+        let result = multi_pattern_nfa.add_patterns(vec![
+            "\\r\\n|\\r|\\n",
+            "[\\s--\\r\\n]+",
+            "(//.*(\\r\\n|\\r|\\n|$))",
+            "(/\\*.*?\\*/)",
+            "%start",
+            "%title",
+            "%comment",
+            "%user_type",
+            "=",
+            "%grammar_type",
+            "%line_comment",
+            "%block_comment",
+            "%auto_newline_off",
+            "%auto_ws_off",
+            "%on",
+            "%enter",
+            "%%",
+            "::",
+            ":",
+            ";",
+            "\\|",
+            "<",
+            ">",
+            "\"(\\\\.|[^\\\\])*?\"",
+            "'(\\\\'|[^'])*?'",
+            "\\u{2F}(\\\\.|[^\\\\])*?\\u{2F}",
+            "\\(",
+            "\\)",
+            "\\[",
+            "\\]",
+            "\\{",
+            "\\}",
+            "[a-zA-Z_][a-zA-Z0-9_]*",
+            "%scanner",
+            ",",
+            "%sc",
+            "%push",
+            "%pop",
+            "\\^",
+            ".",
+        ]);
+        match result {
+            Ok(_) => {}
+            Err(e) => {
+                panic!("Error: {}", e);
+            }
+        }
+
+        multi_render_to!(&multi_pattern_nfa, "multiple_patterns");
     }
 }

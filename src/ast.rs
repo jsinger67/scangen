@@ -1,4 +1,4 @@
-//! This module contails several TryFrom implementations for converting the AST to an NFA.
+//! This module contails a TryFrom implementation for converting the AST to an NFA.
 
 use regex_syntax::ast::Ast;
 
@@ -29,22 +29,16 @@ impl TryFrom<Ast> for Nfa {
                 nfa.add_transition(start_state, Ast::Dot(d.clone()), end_state);
                 Ok(nfa)
             }
-            Ast::Assertion(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:#?}",
-                ast
-            )))),
-            Ast::ClassUnicode(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:#?}",
-                ast
-            )))),
-            Ast::ClassPerl(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:#?}",
-                ast
-            )))),
-            Ast::ClassBracketed(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:#?}",
-                ast
-            )))),
+            Ast::Assertion(_)
+            | Ast::ClassUnicode(_)
+            | Ast::ClassPerl(_)
+            | Ast::ClassBracketed(_) => {
+                let start_state = nfa.end_state();
+                let end_state = nfa.new_state();
+                nfa.set_end_state(end_state);
+                nfa.add_transition(start_state, ast.clone(), end_state);
+                Ok(nfa)
+            }
             Ast::Repetition(ref r) => {
                 let mut nfa2: Nfa = r.ast.as_ref().clone().try_into()?;
                 match &r.op.kind {
