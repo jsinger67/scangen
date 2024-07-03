@@ -20,7 +20,7 @@ mod ast;
 
 /// Module with conversion to graphviz dot format
 mod dot;
-pub use dot::{multi_render_to, render_to};
+pub use dot::{dfa_render_to, multi_render_to, render_to};
 
 /// Module with error definitions
 mod errors;
@@ -40,3 +40,6 @@ mod character_class;
 
 /// Module that provides function type that can be used to decide if a character is in a character class.
 mod match_function;
+
+/// Module that provides types related to DFA
+mod dfa;

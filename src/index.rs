@@ -117,6 +117,11 @@ impl std::fmt::Display for StateId {
     }
 }
 
+impl From<usize> for StateId {
+    fn from(index: usize) -> Self {
+        StateId::new(index)
+    }
+}
 /// The identifier for a terminal the scanner has matched when reaching an accepting state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct PatternId(Index);
@@ -160,6 +165,12 @@ impl core::ops::AddAssign<usize> for PatternId {
 impl std::fmt::Display for PatternId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl From<usize> for PatternId {
+    fn from(index: usize) -> Self {
+        PatternId::new(index)
     }
 }
 
@@ -207,5 +218,11 @@ impl core::ops::AddAssign<usize> for CharClassId {
 impl std::fmt::Display for CharClassId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl From<usize> for CharClassId {
+    fn from(index: usize) -> Self {
+        CharClassId::new(index)
     }
 }

@@ -4,7 +4,7 @@ use std::io::Write;
 
 use dot_writer::{Attributes, DotWriter, RankDirection};
 
-use crate::{multi_pattern_nfa::MultiPatternNfa, nfa::Nfa};
+use crate::{dfa::Dfa, multi_pattern_nfa::MultiPatternNfa, nfa::Nfa};
 
 /// Render the NFA to a graphviz dot format.
 pub fn render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
@@ -98,6 +98,52 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
                 .edge(source_id.clone(), &format!("node_{}", target_state))
                 .attributes()
                 .set_label("ε");
+        }
+    }
+}
+
+/// Render a DFA to a graphviz dot format.
+pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
+    let mut writer = DotWriter::from(output);
+    writer.set_pretty_print(true);
+    let mut digraph = writer.digraph();
+    digraph
+        .set_label(label)
+        .set_rank_direction(RankDirection::LeftRight);
+    for (state_id, state) in dfa.states().iter().enumerate() {
+        let source_id = {
+            let mut source_node = digraph.node_auto();
+            source_node.set_label(&state_id.to_string());
+            if state_id == 0 {
+                source_node
+                    .set_shape(dot_writer::Shape::Circle)
+                    .set_color(dot_writer::Color::Blue)
+                    .set_pen_width(3.0);
+            }
+            if let Some(pattern_id) = dfa.accepting_states().get(&state_id.into()) {
+                source_node
+                    .set_color(dot_writer::Color::Red)
+                    .set_pen_width(3.0)
+                    .set_label(&format!(
+                        "{} '{}':{}",
+                        state_id,
+                        dfa.patterns()[pattern_id.as_index()],
+                        pattern_id,
+                    ));
+            }
+            source_node.id()
+        };
+        for (char_id, target_state_id) in state.transitions() {
+            let target_state = *target_state_id;
+            // Label the edge with the character class used to transition to the target state.
+            digraph
+                .edge(source_id.clone(), &format!("node_{}", target_state))
+                .attributes()
+                .set_label(&format!(
+                    "{}:{}",
+                    dfa.char_classes()[char_id.id().as_index()].ast.0,
+                    char_id.id()
+                ));
         }
     }
 }

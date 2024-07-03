@@ -1,12 +1,13 @@
 use regex_syntax::ast::{Ast, Position, Span};
 
-use crate::{match_function::MatchFunction, CharClassId};
+use crate::CharClassId;
 
 /// A character class that can match a character.
+#[derive(Default, Clone)]
 pub(crate) struct CharacterClass {
     pub(crate) id: CharClassId,
     pub(crate) ast: ComparableAst,
-    pub(crate) matches: Option<MatchFunction>,
+    // pub(crate) matches: Option<MatchFunction>,
 }
 
 impl CharacterClass {
@@ -14,7 +15,6 @@ impl CharacterClass {
         CharacterClass {
             id,
             ast: ComparableAst(ast),
-            matches: None,
         }
     }
 
@@ -22,49 +22,63 @@ impl CharacterClass {
         self.id
     }
 
-    pub(crate) fn matches(&self, c: char) -> bool {
-        self.matches.as_ref().map_or(false, |f| f.0(c))
-    }
+    // pub(crate) fn matches(&self, c: char) -> bool {
+    //     self.matches.as_ref().map_or(false, |f| f.0(c))
+    // }
 }
 
 impl std::fmt::Debug for CharacterClass {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "CharacterClass {{ id: {:?}, matches: {} }}",
-            self.id,
-            if self.matches.is_some() {
-                "Some"
-            } else {
-                "None"
-            }
+            "CharacterClass {{ id: {:?}, ast: {:?} }}",
+            self.id, self.ast
         )
+        // write!(
+        //     f,
+        //     "CharacterClass {{ id: {:?}, matches: {} }}",
+        //     self.id,
+        //     if self.matches.is_some() {
+        //         "Some"
+        //     } else {
+        //         "None"
+        //     }
+        // )
     }
 }
 
-impl Default for CharacterClass {
-    fn default() -> Self {
-        CharacterClass {
-            id: CharClassId::default(),
-            ast: ComparableAst(Ast::Empty(Box::new(Span {
-                start: Position {
-                    offset: 0,
-                    line: 0,
-                    column: 0,
-                },
-                end: Position {
-                    offset: 0,
-                    line: 0,
-                    column: 0,
-                },
-            }))),
-            matches: None,
-        }
+impl std::hash::Hash for CharacterClass {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.ast.hash(state);
+        // Do not hash the match function, because it is not relevant for equality.
+        // Actually it is calculated from the AST, so it would be redundant.
+    }
+}
+
+impl PartialEq for CharacterClass {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.ast == other.ast
+    }
+}
+
+impl Eq for CharacterClass {}
+
+impl PartialOrd for CharacterClass {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.id.cmp(&other.id))
+    }
+}
+
+impl Ord for CharacterClass {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
     }
 }
 
 /// A comparable AST in regard of a character class.
 /// It only compares AST types that are relevant for handling of character classes.
+#[derive(Debug, Clone, Eq)]
 pub(crate) struct ComparableAst(pub(crate) Ast);
 
 impl PartialEq for ComparableAst {
@@ -83,5 +97,29 @@ impl PartialEq for ComparableAst {
             }
             _ => false,
         }
+    }
+}
+
+impl std::hash::Hash for ComparableAst {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Hash the string representation of the AST.
+        self.0.to_string().hash(state);
+    }
+}
+
+impl Default for ComparableAst {
+    fn default() -> Self {
+        ComparableAst(Ast::Empty(Box::new(Span {
+            start: Position {
+                offset: 0,
+                line: 0,
+                column: 0,
+            },
+            end: Position {
+                offset: 0,
+                line: 0,
+                column: 0,
+            },
+        })))
     }
 }

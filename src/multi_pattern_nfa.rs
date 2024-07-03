@@ -11,10 +11,10 @@ use crate::{
 /// A NFA that can match multiple patterns in parallel.
 #[derive(Debug, Default)]
 pub struct MultiPatternNfa {
-    nfa: NfaWithCharClasses,
-    patterns: Vec<String>,
-    accepting_states: BTreeMap<StateId, PatternId>,
-    char_classes: Vec<CharacterClass>,
+    pub(crate) nfa: NfaWithCharClasses,
+    pub(crate) patterns: Vec<String>,
+    pub(crate) accepting_states: BTreeMap<StateId, PatternId>,
+    pub(crate) char_classes: Vec<CharacterClass>,
 }
 
 impl MultiPatternNfa {
@@ -64,7 +64,7 @@ impl MultiPatternNfa {
         nfa.shift_ids(self.nfa.states().len());
 
         // Add the end state of the given NFA to the accepting states of the own NFA along with the
-        // terminal id
+        // pattern id
         self.accepting_states.insert(nfa.end_state(), pattern_id);
 
         // Add an epsilon transition from the start state of the own NFA to the start state of the
@@ -77,8 +77,22 @@ impl MultiPatternNfa {
 
         Ok(pattern_id)
     }
+
+    /// Calculate the epsilon closure of a state.
+    pub(crate) fn epsilon_closure(&self, state: StateId) -> Vec<StateId> {
+        self.nfa.epsilon_closure(state)
+    }
+
+    /// Calculate the epsilon closure of a set of states and return the unique states.
+    pub(crate) fn epsilon_closure_set<I>(&self, states: I) -> Vec<StateId>
+    where
+        I: IntoIterator<Item = StateId>,
+    {
+        self.nfa.epsilon_closure_set(states)
+    }
 }
-#[derive(Debug, Clone, Default)]
+
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct MultiNfaState {
     state: StateId,
     epsilon_transitions: Vec<EpsilonTransition>,
@@ -159,9 +173,61 @@ impl NfaWithCharClasses {
             self.states.push(new_state);
         });
     }
+
+    /// Calculate the epsilon closure of a state.
+    pub(crate) fn epsilon_closure(&self, state: StateId) -> Vec<StateId> {
+        // The state itself is always part of the ε-closure
+        let mut closure = vec![state];
+        let mut i = 0;
+        while i < closure.len() {
+            let current_state = closure[i];
+            for epsilon_transition in self.states[current_state.as_index()].epsilon_transitions() {
+                if !closure.contains(&epsilon_transition.target_state()) {
+                    closure.push(epsilon_transition.target_state());
+                }
+            }
+            i += 1;
+        }
+        closure
+    }
+
+    /// Calculate the epsilon closure of a set of states and return the unique states.
+    pub(crate) fn epsilon_closure_set<I>(&self, states: I) -> Vec<StateId>
+    where
+        I: IntoIterator<Item = StateId>,
+    {
+        let mut closure: Vec<StateId> = states.into_iter().collect();
+        let mut i = 0;
+        while i < closure.len() {
+            let current_state = closure[i];
+            for epsilon_transition in self.states[current_state.as_index()].epsilon_transitions() {
+                if !closure.contains(&epsilon_transition.target_state()) {
+                    closure.push(epsilon_transition.target_state());
+                }
+            }
+            i += 1;
+        }
+        closure.sort_unstable();
+        closure.dedup();
+        closure
+    }
+
+    /// Calculate move(T, a) for a set of states T and a character class a.
+    /// This is the set of states that can be reached from T by matching a.
+    pub(crate) fn move_set(&self, states: &[StateId], char_class: CharClassId) -> Vec<StateId> {
+        let mut move_set = Vec::new();
+        for state in states {
+            for transition in self.states()[state.as_index()].transitions() {
+                if transition.chars() == char_class {
+                    move_set.push(transition.target_state());
+                }
+            }
+        }
+        move_set
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub(crate) struct MultiNfaTransition {
     // The characters to match
     chars: CharClassId,
