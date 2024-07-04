@@ -7,7 +7,6 @@ use crate::CharClassId;
 pub(crate) struct CharacterClass {
     pub(crate) id: CharClassId,
     pub(crate) ast: ComparableAst,
-    // pub(crate) matches: Option<MatchFunction>,
 }
 
 impl CharacterClass {
@@ -21,10 +20,6 @@ impl CharacterClass {
     pub(crate) fn id(&self) -> CharClassId {
         self.id
     }
-
-    // pub(crate) fn matches(&self, c: char) -> bool {
-    //     self.matches.as_ref().map_or(false, |f| f.0(c))
-    // }
 }
 
 impl std::fmt::Debug for CharacterClass {
@@ -34,16 +29,6 @@ impl std::fmt::Debug for CharacterClass {
             "CharacterClass {{ id: {:?}, ast: {:?} }}",
             self.id, self.ast
         )
-        // write!(
-        //     f,
-        //     "CharacterClass {{ id: {:?}, matches: {} }}",
-        //     self.id,
-        //     if self.matches.is_some() {
-        //         "Some"
-        //     } else {
-        //         "None"
-        //     }
-        // )
     }
 }
 
