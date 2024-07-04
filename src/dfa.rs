@@ -83,10 +83,6 @@ impl Dfa {
                         .entry(state_id)
                         .or_default()
                         .insert(char_class.clone(), target_state);
-                    // // TODO: Remove the transitions member from the DfaState struct.
-                    // dfa.states[state_id.as_index()]
-                    //     .transitions
-                    //     .insert(char_class.clone(), target_state);
                     if !dfa.states[target_state.as_index()].marked {
                         dfa.states[target_state.as_index()].marked = true;
                         work_list.push(target_state);
@@ -159,10 +155,6 @@ pub(crate) struct DfaState {
     nfa_states: Vec<StateId>,
     // The marked flag is used to mark a state as visited during the subset construction algorithm.
     marked: bool,
-    // The transitions of the DFA state.
-    // The key is the character class and the value is the target DFA state. This id can be used as
-    // an index into the DFA states, i.e. the Dfa::states vector.
-    // transitions: BTreeMap<CharacterClass, StateId>,
 }
 
 impl DfaState {
@@ -171,13 +163,8 @@ impl DfaState {
         DfaState {
             nfa_states,
             marked: false,
-            // transitions: BTreeMap::new(),
         }
     }
-
-    // pub(crate) fn transitions(&self) -> &BTreeMap<CharacterClass, StateId> {
-    //     &self.transitions
-    // }
 }
 
 #[cfg(test)]
