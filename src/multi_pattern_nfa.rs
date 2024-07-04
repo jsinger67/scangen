@@ -5,7 +5,7 @@ use log::trace;
 use crate::{
     character_class::{CharacterClass, ComparableAst},
     nfa::{EpsilonTransition, Nfa},
-    parse_regex_syntax, CharClassId, PatternId, Result, StateId,
+    parse_regex_syntax, unsupported, CharClassId, PatternId, Result, ScanGenError, StateId,
 };
 
 /// A NFA that can match multiple patterns in parallel.
@@ -84,8 +84,18 @@ impl MultiPatternNfa {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        for pattern in patterns {
-            self.add_pattern(pattern.as_ref())?;
+        for (index, pattern) in patterns.into_iter().enumerate() {
+            if let Err(e) = self.add_pattern(pattern.as_ref()) {
+                match *e {
+                    ScanGenError::RegexSyntaxError(_) => Err(e)?,
+                    ScanGenError::UnsupportedFeature(s) => Err(unsupported!(format!(
+                        "Error in pattern #{} '{}': {}",
+                        index,
+                        pattern.as_ref(),
+                        s
+                    )))?,
+                }
+            }
         }
         Ok(())
     }
