@@ -89,19 +89,6 @@ impl MultiPatternNfa {
         }
         Ok(())
     }
-
-    /// Calculate the epsilon closure of a state.
-    pub(crate) fn epsilon_closure(&self, state: StateId) -> Vec<StateId> {
-        self.nfa.epsilon_closure(state)
-    }
-
-    /// Calculate the epsilon closure of a set of states and return the unique states.
-    pub(crate) fn epsilon_closure_set<I>(&self, states: I) -> Vec<StateId>
-    where
-        I: IntoIterator<Item = StateId>,
-    {
-        self.nfa.epsilon_closure_set(states)
-    }
 }
 
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -360,7 +347,7 @@ mod tests {
         let result = multi_pattern_nfa.add_patterns(vec![
             "\\r\\n|\\r|\\n",
             "[\\s--\\r\\n]+",
-            "(//.*(\\r\\n|\\r|\\n|$))",
+            "(//.*(\\r\\n|\\r|\\n))",
             "(/\\*.*?\\*/)",
             "%start",
             "%title",

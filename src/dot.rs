@@ -114,34 +114,37 @@ pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
     digraph
         .set_label(label)
         .set_rank_direction(RankDirection::LeftRight);
-    for (state_id, state) in dfa.states().iter().enumerate() {
-        let source_id = {
-            let mut source_node = digraph.node_auto();
-            source_node.set_label(&state_id.to_string());
-            if state_id == 0 {
-                source_node
-                    .set_shape(dot_writer::Shape::Circle)
-                    .set_color(dot_writer::Color::Blue)
-                    .set_pen_width(3.0);
-            }
-            if let Some(pattern_id) = dfa.accepting_states().get(&state_id.into()) {
-                source_node
-                    .set_color(dot_writer::Color::Red)
-                    .set_pen_width(3.0)
-                    .set_label(&format!(
-                        "{} '{}':{}",
-                        state_id,
-                        dfa.patterns()[pattern_id.as_index()].escape_default(),
-                        pattern_id,
-                    ));
-            }
-            source_node.id()
-        };
-        for (char_id, target_state_id) in state.transitions() {
-            let target_state = *target_state_id;
+    // Render the states of the DFA
+    for state_id in 0..dfa.states().len() {
+        let mut source_node = digraph.node_auto();
+        source_node.set_label(&state_id.to_string());
+        if state_id == 0 {
+            source_node
+                .set_shape(dot_writer::Shape::Circle)
+                .set_color(dot_writer::Color::Blue)
+                .set_pen_width(3.0);
+        }
+        if let Some(pattern_id) = dfa.accepting_states().get(&state_id.into()) {
+            source_node
+                .set_color(dot_writer::Color::Red)
+                .set_pen_width(3.0)
+                .set_label(&format!(
+                    "{} '{}':{}",
+                    state_id,
+                    dfa.patterns()[pattern_id.as_index()].escape_default(),
+                    pattern_id,
+                ));
+        }
+    }
+    // Render the transitions of the DFA
+    for (source_id, targets) in dfa.transitions() {
+        for (char_id, target_id) in targets.iter() {
             // Label the edge with the character class used to transition to the target state.
             digraph
-                .edge(source_id.clone(), &format!("node_{}", target_state))
+                .edge(
+                    &format!("node_{}", source_id),
+                    &format!("node_{}", target_id),
+                )
                 .attributes()
                 .set_label(&format!(
                     "{}:{}",

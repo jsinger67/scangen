@@ -22,11 +22,6 @@ pub struct Dfa {
 }
 
 impl Dfa {
-    /// Create a new DFA.
-    pub(crate) fn new() -> Self {
-        Dfa::default()
-    }
-
     /// Get the states of the DFA.
     pub(crate) fn states(&self) -> &[DfaState] {
         &self.states
@@ -47,6 +42,13 @@ impl Dfa {
         &self.char_classes
     }
 
+    /// Get the transitions of the DFA.
+    pub(crate) fn transitions(&self) -> &BTreeMap<StateId, BTreeMap<CharacterClass, StateId>> {
+        &self.transitions
+    }
+
+    /// Create a DFA from a multi-pattern NFA.
+    /// The DFA is created using the subset construction algorithm.
     fn from_nfa(nfa: MultiPatternNfa) -> Self {
         let MultiPatternNfa {
             nfa,
@@ -81,10 +83,10 @@ impl Dfa {
                         .entry(state_id)
                         .or_default()
                         .insert(char_class.clone(), target_state);
-                    // TODO: Remove the transitions member from the DfaState struct.
-                    dfa.states[state_id.as_index()]
-                        .transitions
-                        .insert(char_class.clone(), target_state);
+                    // // TODO: Remove the transitions member from the DfaState struct.
+                    // dfa.states[state_id.as_index()]
+                    //     .transitions
+                    //     .insert(char_class.clone(), target_state);
                     if !dfa.states[target_state.as_index()].marked {
                         dfa.states[target_state.as_index()].marked = true;
                         work_list.push(target_state);
@@ -101,25 +103,21 @@ impl Dfa {
     /// The accepting states are used to determine if the DFA state is an accepting state.
     fn add_state(
         &mut self,
-        mut nfa_state: Vec<StateId>,
+        mut nfa_states: Vec<StateId>,
         accepting_states: &BTreeMap<StateId, PatternId>,
     ) -> StateId {
-        nfa_state.sort_unstable();
-        nfa_state.dedup();
+        nfa_states.sort_unstable();
+        nfa_states.dedup();
         if let Some(state_id) = self
             .states
             .iter()
-            .position(|state| state.nfa_states == nfa_state)
+            .position(|state| state.nfa_states == nfa_states)
         {
             return StateId::new(state_id);
         }
 
         let state_id = self.states.len();
-        let state = DfaState {
-            nfa_states: nfa_state.into_iter().collect(),
-            marked: false,
-            transitions: BTreeMap::new(),
-        };
+        let state = DfaState::new(nfa_states);
 
         // Check if the constraint holds that only one pattern can match, i.e. the DFA
         // state only contains one accpting NFA state. This should always be the case since
@@ -164,29 +162,22 @@ pub(crate) struct DfaState {
     // The transitions of the DFA state.
     // The key is the character class and the value is the target DFA state. This id can be used as
     // an index into the DFA states, i.e. the Dfa::states vector.
-    transitions: BTreeMap<CharacterClass, StateId>,
+    // transitions: BTreeMap<CharacterClass, StateId>,
 }
 
 impl DfaState {
+    /// Create a new DFA state solely from the NFA states that constitute the DFA state.
     pub(crate) fn new(nfa_states: Vec<StateId>) -> Self {
         DfaState {
             nfa_states,
             marked: false,
-            transitions: BTreeMap::new(),
+            // transitions: BTreeMap::new(),
         }
     }
 
-    pub(crate) fn nfa_states(&self) -> &[StateId] {
-        &self.nfa_states
-    }
-
-    pub(crate) fn marked(&self) -> bool {
-        self.marked
-    }
-
-    pub(crate) fn transitions(&self) -> &BTreeMap<CharacterClass, StateId> {
-        &self.transitions
-    }
+    // pub(crate) fn transitions(&self) -> &BTreeMap<CharacterClass, StateId> {
+    //     &self.transitions
+    // }
 }
 
 #[cfg(test)]
@@ -254,7 +245,7 @@ mod tests {
         let result = multi_pattern_nfa.add_patterns(vec![
             "\\r\\n|\\r|\\n",
             "[\\s--\\r\\n]+",
-            "(//.*(\\r\\n|\\r|\\n|$))",
+            "(//.*(\\r\\n|\\r|\\n))",
             "(/\\*.*?\\*/)",
             "%start",
             "%title",
@@ -304,9 +295,9 @@ mod tests {
 
         dfa_render_to!(&dfa, "dfa_from_nfa_3");
 
-        assert_eq!(dfa.states().len(), 155);
+        assert_eq!(dfa.states().len(), 154);
         assert_eq!(dfa.patterns().len(), 40);
-        assert_eq!(dfa.accepting_states().len(), 46);
-        assert_eq!(dfa.char_classes().len(), 51);
+        assert_eq!(dfa.accepting_states().len(), 45);
+        assert_eq!(dfa.char_classes().len(), 50);
     }
 }

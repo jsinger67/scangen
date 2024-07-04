@@ -6,7 +6,7 @@ use regex_syntax::ast::{
     Literal,
 };
 
-use crate::{Result, ScanGenError};
+use crate::{unsupported, Result, ScanGenError};
 
 /// A function that takes a character and returns a boolean.
 pub(crate) struct MatchFunction(pub(crate) Box<dyn Fn(char) -> bool + 'static>);
@@ -50,12 +50,7 @@ impl MatchFunction {
                     'P' => MatchFunction::new(|ch| ch.is_ascii_punctuation()),
                     // Unicode class for Control characters
                     'C' => MatchFunction::new(|ch| ch.is_control()),
-                    _ => {
-                        return Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                            "{:#?}",
-                            unicode
-                        ))))
-                    }
+                    _ => return Err(unsupported!(format!("{:#?}", unicode))),
                 }
             }
             Named(_) | NamedValue { .. } => {
@@ -202,12 +197,7 @@ impl TryFrom<Ast> for MatchFunction {
             Ast::ClassUnicode(ref c) => Self::try_from_class_unicode(*c.clone())?,
             Ast::ClassPerl(ref c) => Self::try_from_class_perl(*c.clone())?,
             Ast::ClassBracketed(ref c) => Self::try_from_class_bracketed(*c.clone())?,
-            _ => {
-                return Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                    "{:#?}",
-                    ast
-                ))))
-            }
+            _ => return Err(unsupported!(format!("{:#?}", ast))),
         };
         Ok(match_function)
     }

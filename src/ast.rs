@@ -1,8 +1,8 @@
 //! This module contails a TryFrom implementation for converting the AST to an NFA.
 
-use regex_syntax::ast::Ast;
+use regex_syntax::ast::{Ast, RepetitionKind, RepetitionRange};
 
-use crate::{nfa::Nfa, Result, ScanGenError};
+use crate::{nfa::Nfa, unsupported, Result, ScanGenError};
 
 impl TryFrom<Ast> for Nfa {
     type Error = Box<ScanGenError>;
@@ -11,10 +11,7 @@ impl TryFrom<Ast> for Nfa {
         let mut nfa = Nfa::new();
         match ast {
             Ast::Empty(_) => Ok(nfa),
-            Ast::Flags(_) => Err(Box::new(ScanGenError::UnsupportedFeature(format!(
-                "{:#?}",
-                ast
-            )))),
+            Ast::Flags(_) => Err(unsupported!(format!("{:?}", ast))),
             Ast::Literal(ref l) => {
                 let start_state = nfa.end_state();
                 let end_state = nfa.new_state();
@@ -29,10 +26,8 @@ impl TryFrom<Ast> for Nfa {
                 nfa.add_transition(start_state, Ast::Dot(d.clone()), end_state);
                 Ok(nfa)
             }
-            Ast::Assertion(_)
-            | Ast::ClassUnicode(_)
-            | Ast::ClassPerl(_)
-            | Ast::ClassBracketed(_) => {
+            Ast::Assertion(ref a) => Err(unsupported!(format!("Assertion {:?}", a.kind))),
+            Ast::ClassUnicode(_) | Ast::ClassPerl(_) | Ast::ClassBracketed(_) => {
                 let start_state = nfa.end_state();
                 let end_state = nfa.new_state();
                 nfa.set_end_state(end_state);
@@ -42,25 +37,25 @@ impl TryFrom<Ast> for Nfa {
             Ast::Repetition(ref r) => {
                 let mut nfa2: Nfa = r.ast.as_ref().clone().try_into()?;
                 match &r.op.kind {
-                    regex_syntax::ast::RepetitionKind::ZeroOrOne => {
+                    RepetitionKind::ZeroOrOne => {
                         nfa2.zero_or_one();
                         nfa = nfa2;
                     }
-                    regex_syntax::ast::RepetitionKind::ZeroOrMore => {
+                    RepetitionKind::ZeroOrMore => {
                         nfa2.zero_or_more();
                         nfa = nfa2;
                     }
-                    regex_syntax::ast::RepetitionKind::OneOrMore => {
+                    RepetitionKind::OneOrMore => {
                         nfa2.one_or_more();
                         nfa = nfa2;
                     }
-                    regex_syntax::ast::RepetitionKind::Range(r) => match r {
-                        regex_syntax::ast::RepetitionRange::Exactly(c) => {
+                    RepetitionKind::Range(r) => match r {
+                        RepetitionRange::Exactly(c) => {
                             for _ in 0..*c {
                                 nfa.concat(nfa2.clone());
                             }
                         }
-                        regex_syntax::ast::RepetitionRange::AtLeast(c) => {
+                        RepetitionRange::AtLeast(c) => {
                             for _ in 0..*c {
                                 nfa.concat(nfa2.clone());
                             }
@@ -68,7 +63,7 @@ impl TryFrom<Ast> for Nfa {
                             nfa_zero_or_more.zero_or_more();
                             nfa.concat(nfa_zero_or_more);
                         }
-                        regex_syntax::ast::RepetitionRange::Bounded(least, most) => {
+                        RepetitionRange::Bounded(least, most) => {
                             for _ in 0..*least {
                                 nfa.concat(nfa2.clone());
                             }
