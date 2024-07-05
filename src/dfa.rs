@@ -113,7 +113,7 @@ impl Dfa {
         }
 
         let state_id = self.states.len();
-        let state = DfaState::new(nfa_states);
+        let state = DfaState::new(state_id.into(), nfa_states);
 
         // Check if the constraint holds that only one pattern can match, i.e. the DFA
         // state only contains one accpting NFA state. This should always be the case since
@@ -150,6 +150,7 @@ impl From<MultiPatternNfa> for Dfa {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DfaState {
+    id: StateId,
     // The ids of the NFA states that constitute this DFA state. The id can only be used as indices
     // into the NFA states.
     nfa_states: Vec<StateId>,
@@ -159,8 +160,9 @@ pub(crate) struct DfaState {
 
 impl DfaState {
     /// Create a new DFA state solely from the NFA states that constitute the DFA state.
-    pub(crate) fn new(nfa_states: Vec<StateId>) -> Self {
+    pub(crate) fn new(id: StateId, nfa_states: Vec<StateId>) -> Self {
         DfaState {
+            id,
             nfa_states,
             marked: false,
         }
