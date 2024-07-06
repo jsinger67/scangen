@@ -73,7 +73,7 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
                     .set_color(dot_writer::Color::Red)
                     .set_pen_width(3.0)
                     .set_label(&format!(
-                        "{} '{}':{}",
+                        "{}\n'{}':{}",
                         state.id(),
                         nfa.patterns()[pattern_id.as_index()].escape_default(),
                         pattern_id,
@@ -129,7 +129,7 @@ pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
                 .set_color(dot_writer::Color::Red)
                 .set_pen_width(3.0)
                 .set_label(&format!(
-                    "{} '{}':{}",
+                    "{}\n'{}'{}",
                     state_id,
                     dfa.patterns()[pattern_id.as_index()].escape_default(),
                     pattern_id,
