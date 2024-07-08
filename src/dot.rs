@@ -98,7 +98,7 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
                 .attributes()
                 .set_label(&format!(
                     "{}:{}",
-                    nfa.char_classes()[transition.chars().as_index()]
+                    nfa.char_classes()[transition.chars()]
                         .ast
                         .0
                         .to_string()
@@ -164,7 +164,7 @@ pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
                 .attributes()
                 .set_label(&format!(
                     "{}:{}",
-                    dfa.char_classes()[char_id.id().as_index()]
+                    dfa.char_classes()[char_id.id()]
                         .ast
                         .0
                         .to_string()
