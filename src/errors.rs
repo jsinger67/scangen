@@ -60,6 +60,14 @@ impl From<regex_automata::util::primitives::PatternIDError> for ScanGenError {
     }
 }
 
+impl From<regex_automata::util::primitives::StateIDError> for ScanGenError {
+    fn from(error: regex_automata::util::primitives::StateIDError) -> Self {
+        ScanGenError::new(ScanGenErrorKind::RegexAutomataError(
+            RegexAutomataError::StateIDError(error),
+        ))
+    }
+}
+
 impl From<regex_syntax::ast::Error> for ScanGenError {
     fn from(error: regex_syntax::ast::Error) -> Self {
         ScanGenError::new(ScanGenErrorKind::RegexSyntaxError(error))
@@ -72,4 +80,8 @@ pub enum RegexAutomataError {
     /// An error occurred during creation of a new pattern ID.
     #[error("Regex automata error: {0}")]
     PatternIDError(regex_automata::util::primitives::PatternIDError),
+
+    /// An error occurred during creation of a new state ID.
+    #[error("Regex automata error: {0}")]
+    StateIDError(regex_automata::util::primitives::StateIDError),
 }

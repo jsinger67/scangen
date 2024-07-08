@@ -4,41 +4,40 @@
 
 use std::vec;
 
+use regex_automata::util::primitives::StateID;
 use regex_syntax::ast::Ast;
-
-use crate::StateId;
 
 #[derive(Debug, Clone, Default)]
 pub struct Nfa {
     states: Vec<NfaState>,
     // Used during NFA construction
-    start_state: StateId,
+    start_state: StateID,
     // Used during NFA construction
-    end_state: StateId,
+    end_state: StateID,
 }
 
 impl Nfa {
     pub(crate) fn new() -> Self {
         Self {
             states: vec![NfaState::default()],
-            start_state: StateId::default(),
-            end_state: StateId::default(),
+            start_state: StateID::default(),
+            end_state: StateID::default(),
         }
     }
 
     // Returns true if the NFA is empty, i.e. no states and no transitions have been added.
     pub(crate) fn is_empty(&self) -> bool {
-        self.start_state == StateId::default()
-            && self.end_state == StateId::default()
+        self.start_state == StateID::default()
+            && self.end_state == StateID::default()
             && self.states.len() == 1
             && self.states[0].is_empty()
     }
 
-    pub(crate) fn start_state(&self) -> StateId {
+    pub(crate) fn start_state(&self) -> StateID {
         self.start_state
     }
 
-    pub(crate) fn end_state(&self) -> StateId {
+    pub(crate) fn end_state(&self) -> StateID {
         self.end_state
     }
 
@@ -50,42 +49,40 @@ impl Nfa {
         self.states.push(state);
     }
 
-    pub(crate) fn set_start_state(&mut self, state: StateId) {
+    pub(crate) fn set_start_state(&mut self, state: StateID) {
         self.start_state = state;
     }
 
-    pub(crate) fn set_end_state(&mut self, state: StateId) {
+    pub(crate) fn set_end_state(&mut self, state: StateID) {
         self.end_state = state;
     }
 
-    pub(crate) fn add_transition(&mut self, from: StateId, chars: Ast, target_state: StateId) {
-        self.states[from.as_index()]
-            .transitions
-            .push(NfaTransition {
-                chars,
-                target_state,
-            });
+    pub(crate) fn add_transition(&mut self, from: StateID, chars: Ast, target_state: StateID) {
+        self.states[from].transitions.push(NfaTransition {
+            chars,
+            target_state,
+        });
     }
 
-    pub(crate) fn add_epsilon_transition(&mut self, from: StateId, target_state: StateId) {
-        self.states[from.as_index()]
+    pub(crate) fn add_epsilon_transition(&mut self, from: StateID, target_state: StateID) {
+        self.states[from]
             .epsilon_transitions
             .push(EpsilonTransition { target_state });
     }
 
-    pub(crate) fn new_state(&mut self) -> StateId {
-        let state = self.states.len();
-        self.add_state(NfaState::new(StateId::new(state)));
-        StateId::new(state)
+    pub(crate) fn new_state(&mut self) -> StateID {
+        let state = StateID::new_unchecked(self.states.len());
+        self.add_state(NfaState::new(state));
+        state
     }
 
     /// Apply an offset to every state number.
-    pub(crate) fn shift_ids(&mut self, offset: usize) -> (StateId, StateId) {
+    pub(crate) fn shift_ids(&mut self, offset: usize) -> (StateID, StateID) {
         for state in self.states.iter_mut() {
             state.offset(offset);
         }
-        self.start_state += offset;
-        self.end_state += offset;
+        self.start_state = StateID::new_unchecked(self.start_state.as_usize() + offset);
+        self.end_state = StateID::new_unchecked(self.end_state.as_usize() + offset);
         (self.start_state, self.end_state)
     }
 
@@ -211,13 +208,13 @@ impl Nfa {
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct NfaState {
-    state: StateId,
+    state: StateID,
     epsilon_transitions: Vec<EpsilonTransition>,
     transitions: Vec<NfaTransition>,
 }
 
 impl NfaState {
-    pub(crate) fn new(state: StateId) -> Self {
+    pub(crate) fn new(state: StateID) -> Self {
         Self {
             state,
             epsilon_transitions: Vec::new(),
@@ -229,7 +226,7 @@ impl NfaState {
         self.transitions.is_empty() && self.epsilon_transitions.is_empty()
     }
 
-    pub(crate) fn id(&self) -> StateId {
+    pub(crate) fn id(&self) -> StateID {
         self.state
     }
 
@@ -243,12 +240,14 @@ impl NfaState {
 
     /// Apply an offset to every state number.
     pub(crate) fn offset(&mut self, offset: usize) {
-        self.state += offset;
+        self.state = StateID::new_unchecked(self.state.as_usize() + offset);
         for transition in self.transitions.iter_mut() {
-            transition.target_state += offset;
+            transition.target_state =
+                StateID::new_unchecked(transition.target_state.as_usize() + offset);
         }
         for epsilon_transition in self.epsilon_transitions.iter_mut() {
-            epsilon_transition.target_state += offset;
+            epsilon_transition.target_state =
+                StateID::new_unchecked(epsilon_transition.target_state.as_usize() + offset);
         }
     }
 }
@@ -259,11 +258,11 @@ pub(crate) struct NfaTransition {
     // We will later generate a predicate from this that determines if a character matches this transition
     chars: Ast,
     // The next state to transition to
-    target_state: StateId,
+    target_state: StateID,
 }
 
 impl NfaTransition {
-    pub(crate) fn target_state(&self) -> StateId {
+    pub(crate) fn target_state(&self) -> StateID {
         self.target_state
     }
 
@@ -274,17 +273,17 @@ impl NfaTransition {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub(crate) struct EpsilonTransition {
-    pub(crate) target_state: StateId,
+    pub(crate) target_state: StateID,
 }
 
 impl EpsilonTransition {
-    pub(crate) fn target_state(&self) -> StateId {
+    pub(crate) fn target_state(&self) -> StateID {
         self.target_state
     }
 }
 
-impl From<StateId> for EpsilonTransition {
-    fn from(state: StateId) -> Self {
+impl From<StateID> for EpsilonTransition {
+    fn from(state: StateID) -> Self {
         Self {
             target_state: state,
         }

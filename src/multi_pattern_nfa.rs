@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
 use log::trace;
-use regex_automata::PatternID;
+use regex_automata::{util::primitives::StateID, PatternID};
 
 use crate::{
     character_class::{CharacterClass, ComparableAst},
     nfa::{EpsilonTransition, Nfa},
-    parse_regex_syntax, unsupported, CharClassId, Result, ScanGenError, ScanGenErrorKind, StateId,
+    parse_regex_syntax, unsupported, CharClassId, Result, ScanGenError, ScanGenErrorKind,
 };
 
 /// A NFA that can match multiple patterns in parallel.
@@ -14,7 +14,7 @@ use crate::{
 pub struct MultiPatternNfa {
     pub(crate) nfa: NfaWithCharClasses,
     pub(crate) patterns: Vec<String>,
-    pub(crate) accepting_states: BTreeMap<StateId, PatternID>,
+    pub(crate) accepting_states: BTreeMap<StateID, PatternID>,
     pub(crate) char_classes: Vec<CharacterClass>,
 }
 
@@ -40,7 +40,7 @@ impl MultiPatternNfa {
     }
 
     /// Get the accepting states.
-    pub fn accepting_states(&self) -> &BTreeMap<StateId, PatternID> {
+    pub fn accepting_states(&self) -> &BTreeMap<StateID, PatternID> {
         &self.accepting_states
     }
 
@@ -71,7 +71,7 @@ impl MultiPatternNfa {
         // Add an epsilon transition from the start state of the own NFA to the start state of the
         // given NFA
         self.nfa
-            .add_epsilon_transition(StateId::default(), nfa.start_state());
+            .add_epsilon_transition(StateID::default(), nfa.start_state());
 
         // Move the states of the given NFA to the own NFA
         self.nfa.append(&mut self.char_classes, nfa);
@@ -108,13 +108,13 @@ impl MultiPatternNfa {
 
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct MultiNfaState {
-    state: StateId,
+    state: StateID,
     epsilon_transitions: Vec<EpsilonTransition>,
     transitions: Vec<MultiNfaTransition>,
 }
 
 impl MultiNfaState {
-    pub(crate) fn id(&self) -> StateId {
+    pub(crate) fn id(&self) -> StateID {
         self.state
     }
 
@@ -142,8 +142,8 @@ impl NfaWithCharClasses {
         &self.states
     }
 
-    pub(crate) fn add_epsilon_transition(&mut self, from: StateId, target_state: StateId) {
-        self.states[from.as_index()]
+    pub(crate) fn add_epsilon_transition(&mut self, from: StateID, target_state: StateID) {
+        self.states[from]
             .epsilon_transitions
             .push(EpsilonTransition { target_state });
     }
@@ -189,13 +189,13 @@ impl NfaWithCharClasses {
     }
 
     /// Calculate the epsilon closure of a state.
-    pub(crate) fn epsilon_closure(&self, state: StateId) -> Vec<StateId> {
+    pub(crate) fn epsilon_closure(&self, state: StateID) -> Vec<StateID> {
         // The state itself is always part of the ε-closure
         let mut closure = vec![state];
         let mut i = 0;
         while i < closure.len() {
             let current_state = closure[i];
-            for epsilon_transition in self.states[current_state.as_index()].epsilon_transitions() {
+            for epsilon_transition in self.states[current_state].epsilon_transitions() {
                 if !closure.contains(&epsilon_transition.target_state()) {
                     closure.push(epsilon_transition.target_state());
                 }
@@ -206,15 +206,15 @@ impl NfaWithCharClasses {
     }
 
     /// Calculate the epsilon closure of a set of states and return the unique states.
-    pub(crate) fn epsilon_closure_set<I>(&self, states: I) -> Vec<StateId>
+    pub(crate) fn epsilon_closure_set<I>(&self, states: I) -> Vec<StateID>
     where
-        I: IntoIterator<Item = StateId>,
+        I: IntoIterator<Item = StateID>,
     {
-        let mut closure: Vec<StateId> = states.into_iter().collect();
+        let mut closure: Vec<StateID> = states.into_iter().collect();
         let mut i = 0;
         while i < closure.len() {
             let current_state = closure[i];
-            for epsilon_transition in self.states[current_state.as_index()].epsilon_transitions() {
+            for epsilon_transition in self.states[current_state].epsilon_transitions() {
                 if !closure.contains(&epsilon_transition.target_state()) {
                     closure.push(epsilon_transition.target_state());
                 }
@@ -228,10 +228,10 @@ impl NfaWithCharClasses {
 
     /// Calculate move(T, a) for a set of states T and a character class a.
     /// This is the set of states that can be reached from T by matching a.
-    pub(crate) fn move_set(&self, states: &[StateId], char_class: CharClassId) -> Vec<StateId> {
+    pub(crate) fn move_set(&self, states: &[StateID], char_class: CharClassId) -> Vec<StateID> {
         let mut move_set = Vec::new();
         for state in states {
-            for transition in self.states()[state.as_index()].transitions() {
+            for transition in self.states()[*state].transitions() {
                 if transition.chars() == char_class {
                     move_set.push(transition.target_state());
                 }
@@ -246,11 +246,11 @@ pub(crate) struct MultiNfaTransition {
     // The characters to match
     chars: CharClassId,
     // The next state to transition to
-    target_state: StateId,
+    target_state: StateID,
 }
 
 impl MultiNfaTransition {
-    pub(crate) fn target_state(&self) -> StateId {
+    pub(crate) fn target_state(&self) -> StateID {
         self.target_state
     }
 
@@ -288,7 +288,10 @@ mod tests {
         assert_eq!(multi_pattern_nfa.patterns(), &["a".to_string()]);
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
-            &[(StateId::new(2), pattern_id)].iter().cloned().collect()
+            &[(StateID::new_unchecked(2), pattern_id)]
+                .iter()
+                .cloned()
+                .collect()
         );
 
         multi_render_to!(&multi_pattern_nfa, "multi_a");
@@ -304,8 +307,8 @@ mod tests {
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[
-                (StateId::new(2), PatternID::new(0).unwrap()),
-                (StateId::new(4), pattern_id)
+                (StateID::new_unchecked(2), PatternID::new_unchecked(0)),
+                (StateID::new_unchecked(4), pattern_id)
             ]
             .iter()
             .cloned()
@@ -314,15 +317,15 @@ mod tests {
 
         let pattern_id = multi_pattern_nfa.add_pattern("a").unwrap();
         // The pattern "a" already exists, so the terminal id should be the same as before
-        assert_eq!(pattern_id, PatternID::new(0).unwrap());
+        assert_eq!(pattern_id, PatternID::new_unchecked(0));
 
         multi_render_to!(&multi_pattern_nfa, "multi_a_or_b2");
 
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[
-                (StateId::new(2), pattern_id),
-                (StateId::new(4), PatternID::new(1).unwrap())
+                (StateID::new_unchecked(2), pattern_id),
+                (StateID::new_unchecked(4), PatternID::new_unchecked(1))
             ]
             .iter()
             .cloned()
@@ -345,8 +348,8 @@ mod tests {
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[
-                (StateId::new(11), PatternID::new(0).unwrap()),
-                (StateId::new(25), PatternID::new(1).unwrap())
+                (StateID::new_unchecked(11), PatternID::new_unchecked(0)),
+                (StateID::new_unchecked(25), PatternID::new_unchecked(1))
             ]
             .iter()
             .cloned()

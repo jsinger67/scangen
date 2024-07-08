@@ -1,5 +1,5 @@
 /// An index into a slice or vector.
-/// This type is used for other types like StateId and TerminalId.
+/// This type is used for other types like StateID and TerminalId.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Index(usize);
 
@@ -68,58 +68,6 @@ impl core::ops::AddAssign<usize> for Index {
 impl std::fmt::Display for Index {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-/// The StateId is a unique identifier for a state in the NFA/DFA.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct StateId(Index);
-
-impl StateId {
-    /// Create a new state id.
-    #[inline]
-    pub(crate) fn new(index: usize) -> Self {
-        StateId(Index::new(index))
-    }
-
-    /// Get the state id as usize.
-    #[inline]
-    pub fn as_usize(&self) -> usize {
-        self.0.as_usize()
-    }
-
-    /// Get the state id as index.
-    #[inline]
-    pub fn as_index(&self) -> Index {
-        self.0
-    }
-}
-
-impl core::ops::Add<usize> for StateId {
-    type Output = StateId;
-
-    #[inline]
-    fn add(self, rhs: usize) -> Self::Output {
-        StateId(self.0 + rhs)
-    }
-}
-
-impl core::ops::AddAssign<usize> for StateId {
-    #[inline]
-    fn add_assign(&mut self, rhs: usize) {
-        self.0 += rhs;
-    }
-}
-
-impl std::fmt::Display for StateId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<usize> for StateId {
-    fn from(index: usize) -> Self {
-        StateId::new(index)
     }
 }
 

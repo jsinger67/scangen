@@ -3,6 +3,7 @@
 use std::io::Write;
 
 use dot_writer::{Attributes, DotWriter, RankDirection};
+use regex_automata::util::primitives::StateID;
 
 use crate::{dfa::Dfa, multi_pattern_nfa::MultiPatternNfa, nfa::Nfa};
 
@@ -17,7 +18,7 @@ pub fn render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
     for state in nfa.states() {
         let source_id = {
             let mut source_node = digraph.node_auto();
-            source_node.set_label(&state.id().to_string());
+            source_node.set_label(&state.id().as_usize().to_string());
             if state.id() == nfa.start_state() {
                 source_node
                     .set_shape(dot_writer::Shape::Circle)
@@ -35,14 +36,20 @@ pub fn render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
         for transition in state.transitions() {
             let target_state = transition.target_state();
             digraph
-                .edge(source_id.clone(), &format!("node_{}", target_state))
+                .edge(
+                    source_id.clone(),
+                    &format!("node_{}", target_state.as_usize()),
+                )
                 .attributes()
                 .set_label(&format!("{}", transition.chars()));
         }
         for epsilon_transition in state.epsilon_transitions() {
             let target_state = epsilon_transition.target_state();
             digraph
-                .edge(source_id.clone(), &format!("node_{}", target_state))
+                .edge(
+                    source_id.clone(),
+                    &format!("node_{}", target_state.as_usize()),
+                )
                 .attributes()
                 .set_label("ε");
         }
@@ -60,7 +67,7 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
     for state in nfa.nfa().states() {
         let source_id = {
             let mut source_node = digraph.node_auto();
-            source_node.set_label(&state.id().to_string());
+            source_node.set_label(&state.id().as_usize().to_string());
             // The start state of the multi-pattern NFA is always 0
             if state.id().as_usize() == 0 {
                 source_node
@@ -74,7 +81,7 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
                     .set_pen_width(3.0)
                     .set_label(&format!(
                         "{}\n'{}':{}",
-                        state.id(),
+                        state.id().as_usize(),
                         nfa.patterns()[pattern_id.as_usize()].escape_default(),
                         pattern_id.as_usize(),
                     ));
@@ -84,7 +91,10 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
         for transition in state.transitions() {
             let target_state = transition.target_state();
             digraph
-                .edge(source_id.clone(), &format!("node_{}", target_state))
+                .edge(
+                    source_id.clone(),
+                    &format!("node_{}", target_state.as_usize()),
+                )
                 .attributes()
                 .set_label(&format!(
                     "{}:{}",
@@ -99,7 +109,10 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
         for epsilon_transition in state.epsilon_transitions() {
             let target_state = epsilon_transition.target_state();
             digraph
-                .edge(source_id.clone(), &format!("node_{}", target_state))
+                .edge(
+                    source_id.clone(),
+                    &format!("node_{}", target_state.as_usize()),
+                )
                 .attributes()
                 .set_label("ε");
         }
@@ -124,7 +137,10 @@ pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
                 .set_color(dot_writer::Color::Blue)
                 .set_pen_width(3.0);
         }
-        if let Some(pattern_id) = dfa.accepting_states().get(&state_id.into()) {
+        if let Some(pattern_id) = dfa
+            .accepting_states()
+            .get(&StateID::new_unchecked(state_id))
+        {
             source_node
                 .set_color(dot_writer::Color::Red)
                 .set_pen_width(3.0)
@@ -142,8 +158,8 @@ pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
             // Label the edge with the character class used to transition to the target state.
             digraph
                 .edge(
-                    &format!("node_{}", source_id),
-                    &format!("node_{}", target_id),
+                    &format!("node_{}", source_id.as_usize()),
+                    &format!("node_{}", target_id.as_usize()),
                 )
                 .attributes()
                 .set_label(&format!(

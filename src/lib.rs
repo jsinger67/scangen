@@ -28,7 +28,7 @@ pub use errors::{RegexAutomataError, Result, ScanGenError, ScanGenErrorKind};
 
 /// Module that provides a type for integer ids that can also be used to index into slices.
 mod index;
-pub use index::{CharClassId, Index, StateId};
+pub use index::{CharClassId, Index};
 
 /// Module that provides a type for a multi-pattern NFA
 /// that can be used to match multiple patterns in parallel.
