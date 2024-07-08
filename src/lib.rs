@@ -24,11 +24,11 @@ pub use dot::{dfa_render_to, multi_render_to, render_to};
 
 /// Module with error definitions
 mod errors;
-pub use errors::{Result, ScanGenError};
+pub use errors::{RegexAutomataError, Result, ScanGenError, ScanGenErrorKind};
 
 /// Module that provides a type for integer ids that can also be used to index into slices.
 mod index;
-pub use index::{CharClassId, Index, PatternId, StateId};
+pub use index::{CharClassId, Index, StateId};
 
 /// Module that provides a type for a multi-pattern NFA
 /// that can be used to match multiple patterns in parallel.

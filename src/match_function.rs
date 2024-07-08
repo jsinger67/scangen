@@ -177,7 +177,7 @@ impl MatchFunction {
 }
 
 impl TryFrom<Ast> for MatchFunction {
-    type Error = Box<ScanGenError>;
+    type Error = ScanGenError;
 
     fn try_from(ast: Ast) -> Result<Self> {
         let match_function = match ast {

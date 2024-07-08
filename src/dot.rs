@@ -75,8 +75,8 @@ pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mu
                     .set_label(&format!(
                         "{}\n'{}':{}",
                         state.id(),
-                        nfa.patterns()[pattern_id.as_index()].escape_default(),
-                        pattern_id,
+                        nfa.patterns()[pattern_id.as_usize()].escape_default(),
+                        pattern_id.as_usize(),
                     ));
             }
             source_node.id()
@@ -131,8 +131,8 @@ pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
                 .set_label(&format!(
                     "{}\n'{}':{}",
                     state_id,
-                    dfa.patterns()[pattern_id.as_index()].escape_default(),
-                    pattern_id,
+                    dfa.patterns()[pattern_id.as_usize()].escape_default(),
+                    pattern_id.as_usize(),
                 ));
         }
     }

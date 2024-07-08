@@ -122,57 +122,6 @@ impl From<usize> for StateId {
         StateId::new(index)
     }
 }
-/// The identifier for a terminal the scanner has matched when reaching an accepting state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct PatternId(Index);
-
-impl PatternId {
-    /// Create a new terminal id.
-    #[inline]
-    pub(crate) fn new(index: usize) -> Self {
-        PatternId(Index::new(index))
-    }
-
-    /// Get the terminal id as usize.
-    #[inline]
-    pub fn as_usize(&self) -> usize {
-        self.0.as_usize()
-    }
-
-    /// Get the terminal id as index.
-    #[inline]
-    pub fn as_index(&self) -> Index {
-        self.0
-    }
-}
-
-impl core::ops::Add<usize> for PatternId {
-    type Output = PatternId;
-
-    #[inline]
-    fn add(self, rhs: usize) -> Self::Output {
-        PatternId(self.0 + rhs)
-    }
-}
-
-impl core::ops::AddAssign<usize> for PatternId {
-    #[inline]
-    fn add_assign(&mut self, rhs: usize) {
-        self.0 += rhs;
-    }
-}
-
-impl std::fmt::Display for PatternId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<usize> for PatternId {
-    fn from(index: usize) -> Self {
-        PatternId::new(index)
-    }
-}
 
 /// The identifier for a character class in the NFA/DFA.
 /// This is used to identify the character class in the transition table.

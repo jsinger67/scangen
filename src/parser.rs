@@ -3,7 +3,7 @@
 //! We use the `regex_syntax` crate to parse the regex syntax, although we will only support a
 //! subset of the regex syntax.
 
-use crate::{Result, ScanGenError};
+use crate::Result;
 use log::trace;
 use std::time::Instant;
 
@@ -25,11 +25,15 @@ pub fn parse_regex_syntax(input: &str) -> Result<Ast> {
             trace!("Parsing took {} milliseconds.", elapsed_time.as_millis());
             Ok(syntax_tree)
         }
-        Err(e) => Err(Box::new(ScanGenError::RegexSyntaxError(e))),
+        Err(e) => Err(e.into()),
     }
 }
 #[cfg(test)]
 mod tests {
+    use std::error::Error;
+
+    use crate::{ScanGenError, ScanGenErrorKind};
+
     use super::*;
 
     #[test]
@@ -51,10 +55,10 @@ mod tests {
         // Add assertions here to validate the error message or behavior
         assert!(matches!(
             result,
-            Err(ref e) if matches!(**e, ScanGenError::RegexSyntaxError(_))
+            Err(ref e) if matches!(e, ScanGenError{ source } if matches!(**source, ScanGenErrorKind::RegexSyntaxError(_)))
         ));
         assert_eq!(
-            result.unwrap_err().to_string(),
+            result.unwrap_err().source().unwrap().to_string(),
             r#"regex parse error:
     ^\d{4}-\d{2}-\d{2}$[
                        ^

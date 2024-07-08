@@ -4,9 +4,10 @@
 
 use itertools::Itertools;
 use log::trace;
+use regex_automata::PatternID;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::{character_class::CharacterClass, MultiPatternNfa, PatternId, StateId};
+use crate::{character_class::CharacterClass, MultiPatternNfa, StateId};
 
 // The type definitions for the subset construction algorithm.
 type StateGroup = BTreeSet<StateId>;
@@ -35,7 +36,7 @@ pub struct Dfa {
     // The patterns for the accepting states.
     patterns: Vec<String>,
     // The accepting states of the DFA as well as the corresponding pattern id.
-    accepting_states: BTreeMap<StateId, PatternId>,
+    accepting_states: BTreeMap<StateId, PatternID>,
     // The character classes used in the DFA.
     char_classes: Vec<CharacterClass>,
     // The transitions of the DFA.
@@ -54,7 +55,7 @@ impl Dfa {
     }
 
     /// Get the accepting states of the DFA.
-    pub(crate) fn accepting_states(&self) -> &BTreeMap<StateId, PatternId> {
+    pub(crate) fn accepting_states(&self) -> &BTreeMap<StateId, PatternID> {
         &self.accepting_states
     }
 
@@ -121,7 +122,7 @@ impl Dfa {
     fn add_state_if_new<I>(
         &mut self,
         nfa_states: I,
-        accepting_states: &BTreeMap<StateId, PatternId>,
+        accepting_states: &BTreeMap<StateId, PatternID>,
     ) -> StateId
     where
         I: IntoIterator<Item = StateId>,
@@ -175,7 +176,7 @@ impl Dfa {
     fn add_representive_state(
         &mut self,
         group: &BTreeSet<StateId>,
-        accepting_states: &BTreeMap<StateId, PatternId>,
+        accepting_states: &BTreeMap<StateId, PatternID>,
     ) -> StateId {
         let state_id = self.states.len();
         let state = DfaState::new(state_id.into(), Vec::new());
@@ -196,7 +197,7 @@ impl Dfa {
                 trace!(
                     "* State {} with pattern id {} is accepting state (from state {}).",
                     state_id,
-                    pattern_id,
+                    pattern_id.as_usize(),
                     state_in_group
                 );
                 self.accepting_states.insert(state_id.into(), *pattern_id);
@@ -490,7 +491,7 @@ impl std::fmt::Display for Dfa {
         }
         writeln!(f, "Accepting states:")?;
         for (state_id, pattern_id) in &self.accepting_states {
-            writeln!(f, "{}: {}", state_id, pattern_id)?;
+            writeln!(f, "{}: {}", state_id, pattern_id.as_usize())?;
         }
         writeln!(f, "Char classes:")?;
         for char_class in &self.char_classes {

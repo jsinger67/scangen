@@ -5,7 +5,7 @@ use regex_syntax::ast::{Ast, RepetitionKind, RepetitionRange};
 use crate::{nfa::Nfa, unsupported, Result, ScanGenError};
 
 impl TryFrom<Ast> for Nfa {
-    type Error = Box<ScanGenError>;
+    type Error = ScanGenError;
 
     fn try_from(ast: Ast) -> Result<Self> {
         let mut nfa = Nfa::new();

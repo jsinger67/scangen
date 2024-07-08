@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
 
 use log::trace;
+use regex_automata::PatternID;
 
 use crate::{
     character_class::{CharacterClass, ComparableAst},
     nfa::{EpsilonTransition, Nfa},
-    parse_regex_syntax, unsupported, CharClassId, PatternId, Result, ScanGenError, StateId,
+    parse_regex_syntax, unsupported, CharClassId, Result, ScanGenError, ScanGenErrorKind, StateId,
 };
 
 /// A NFA that can match multiple patterns in parallel.
@@ -13,7 +14,7 @@ use crate::{
 pub struct MultiPatternNfa {
     pub(crate) nfa: NfaWithCharClasses,
     pub(crate) patterns: Vec<String>,
-    pub(crate) accepting_states: BTreeMap<StateId, PatternId>,
+    pub(crate) accepting_states: BTreeMap<StateId, PatternID>,
     pub(crate) char_classes: Vec<CharacterClass>,
 }
 
@@ -39,7 +40,7 @@ impl MultiPatternNfa {
     }
 
     /// Get the accepting states.
-    pub fn accepting_states(&self) -> &BTreeMap<StateId, PatternId> {
+    pub fn accepting_states(&self) -> &BTreeMap<StateId, PatternID> {
         &self.accepting_states
     }
 
@@ -49,14 +50,14 @@ impl MultiPatternNfa {
     }
 
     /// Add a pattern to the multi-pattern NFA.
-    pub fn add_pattern(&mut self, pattern: &str) -> Result<PatternId> {
+    pub fn add_pattern(&mut self, pattern: &str) -> Result<PatternID> {
         if let Some(id) = self.patterns.iter().position(|p| p == pattern) {
             // If the pattern already exists, return the terminal id
             // Not sure if this should rather be an error
-            return Ok(PatternId::new(id));
+            return Ok(PatternID::new(id)?);
         }
 
-        let pattern_id = PatternId::new(self.patterns.len());
+        let pattern_id = PatternID::new(self.patterns.len())?;
         let mut nfa: Nfa = parse_regex_syntax(pattern)?.try_into()?;
         self.patterns.push(pattern.to_string());
 
@@ -85,16 +86,20 @@ impl MultiPatternNfa {
         S: AsRef<str>,
     {
         for (index, pattern) in patterns.into_iter().enumerate() {
-            if let Err(e) = self.add_pattern(pattern.as_ref()) {
-                match *e {
-                    ScanGenError::RegexSyntaxError(_) => Err(e)?,
-                    ScanGenError::UnsupportedFeature(s) => Err(unsupported!(format!(
+            let result = self.add_pattern(pattern.as_ref()).map(|_| ());
+            if let Err(ScanGenError { source }) = &result {
+                match &**source {
+                    ScanGenErrorKind::RegexSyntaxError(_) => result?,
+                    ScanGenErrorKind::UnsupportedFeature(s) => Err(unsupported!(format!(
                         "Error in pattern #{} '{}': {}",
                         index,
                         pattern.as_ref(),
                         s
                     )))?,
+                    _ => result?,
                 }
+            } else {
+                result?;
             }
         }
         Ok(())
@@ -299,7 +304,7 @@ mod tests {
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[
-                (StateId::new(2), PatternId::new(0)),
+                (StateId::new(2), PatternID::new(0).unwrap()),
                 (StateId::new(4), pattern_id)
             ]
             .iter()
@@ -309,7 +314,7 @@ mod tests {
 
         let pattern_id = multi_pattern_nfa.add_pattern("a").unwrap();
         // The pattern "a" already exists, so the terminal id should be the same as before
-        assert_eq!(pattern_id, PatternId::new(0));
+        assert_eq!(pattern_id, PatternID::new(0).unwrap());
 
         multi_render_to!(&multi_pattern_nfa, "multi_a_or_b2");
 
@@ -317,7 +322,7 @@ mod tests {
             multi_pattern_nfa.accepting_states(),
             &[
                 (StateId::new(2), pattern_id),
-                (StateId::new(4), PatternId::new(1))
+                (StateId::new(4), PatternID::new(1).unwrap())
             ]
             .iter()
             .cloned()
@@ -340,8 +345,8 @@ mod tests {
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[
-                (StateId::new(11), PatternId::new(0)),
-                (StateId::new(25), PatternId::new(1))
+                (StateId::new(11), PatternID::new(0).unwrap()),
+                (StateId::new(25), PatternID::new(1).unwrap())
             ]
             .iter()
             .cloned()
