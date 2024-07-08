@@ -586,6 +586,76 @@ mod tests {
         "timd", "tskv", "type", "unkn",
     ];
 
+    // A data type that provides test data for the DFA minimization tests.
+    struct TestData {
+        name: &'static str,
+        patterns: &'static [&'static str],
+        states: usize,
+        accepting_states: usize,
+        char_classes: usize,
+        min_states: usize,
+        min_accepting_states: usize,
+    }
+
+    // Test data for the DFA minimization tests.
+    const TEST_DATA: &[TestData] = &[
+        TestData {
+            name: "parol",
+            patterns: PATTERNS,
+            states: 154,
+            accepting_states: 45,
+            char_classes: 50,
+            min_states: 151,
+            min_accepting_states: 45,
+        },
+        TestData {
+            name: "sym_spec",
+            patterns: PATTERNS_2,
+            states: 107,
+            accepting_states: 37,
+            char_classes: 23,
+            min_states: 107,
+            min_accepting_states: 37,
+        },
+        TestData {
+            name: "dragon",
+            patterns: &["(a|b)*abb"],
+            states: 5,
+            accepting_states: 1,
+            char_classes: 2,
+            min_states: 4,
+            min_accepting_states: 1,
+        },
+        TestData {
+            name: "in_int",
+            patterns: &["in", "int"],
+            states: 4,
+            accepting_states: 2,
+            char_classes: 3,
+            min_states: 4,
+            min_accepting_states: 2,
+        },
+        TestData {
+            name: "bounds",
+            patterns: &["a{1,2}b{2,}c{3}"],
+            states: 9,
+            accepting_states: 1,
+            char_classes: 3,
+            min_states: 8,
+            min_accepting_states: 1,
+        },
+        // "[A-Z][a-z]*([ ][A-Z][a-z]*)*[ ][A-Z][A-Z]"
+        TestData {
+            name: "city_and_state",
+            patterns: &["[A-Z][a-z]*([ ][A-Z][a-z]*)*[ ][A-Z][A-Z]"],
+            states: 7,
+            accepting_states: 1,
+            char_classes: 3,
+            min_states: 6,
+            min_accepting_states: 1,
+        },
+    ];
+
     // Initialize the logger for the tests
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -594,7 +664,7 @@ mod tests {
     // A macro that simplifies the rendering of a dot file for test purposes
     macro_rules! dfa_render_to {
         ($nfa:expr, $label:expr) => {
-            let mut f = File::create(concat!($label, ".dot")).unwrap();
+            let mut f = File::create(format!("{}.dot", $label)).unwrap();
             dfa_render_to($nfa, $label, &mut f);
         };
     }
@@ -602,7 +672,7 @@ mod tests {
     // A macro that simplifies the rendering of a dot file for test purposes
     macro_rules! multi_render_to {
         ($nfa:expr, $label:expr) => {
-            let mut f = File::create(concat!($label, ".dot")).unwrap();
+            let mut f = File::create(format!("{}.dot", $label)).unwrap();
             multi_render_to($nfa, $label, &mut f);
         };
     }
@@ -667,118 +737,66 @@ mod tests {
     fn test_dfa_minimize() {
         init();
 
-        let mut multi_pattern_nfa = MultiPatternNfa::new();
-        let result = multi_pattern_nfa.add_pattern("(a|b)*abb");
-        assert!(result.is_ok());
-        // let result = multi_pattern_nfa.add_pattern("ab");
-        // assert!(result.is_ok());
-        // let result = multi_pattern_nfa.add_pattern("cd");
-        // assert!(result.is_ok());
-        // let result = multi_pattern_nfa.add_pattern("ef");
-        // assert!(result.is_ok());
+        // Iterate over the test data and run the tests.
+        for data in TEST_DATA {
+            let mut multi_pattern_nfa = MultiPatternNfa::new();
 
-        let dfa = Dfa::from(multi_pattern_nfa);
-        dfa_render_to!(&dfa, "dfa_unminimized");
+            let result = multi_pattern_nfa.add_patterns(data.patterns);
+            if let Err(e) = result {
+                panic!("Error: {}", e);
+            }
+            multi_render_to!(&multi_pattern_nfa, &format!("{}_nfa", data.name));
 
-        let minimized_dfa = dfa.minimize();
-        dfa_render_to!(&minimized_dfa, "dfa_minimized");
+            let dfa = Dfa::from(multi_pattern_nfa);
+            dfa_render_to!(&dfa, &format!("{}_dfa", data.name));
 
-        assert_eq!(minimized_dfa.states().len(), 4);
-        assert_eq!(minimized_dfa.patterns().len(), 1);
-        assert_eq!(minimized_dfa.accepting_states().len(), 1);
-        assert_eq!(minimized_dfa.char_classes().len(), 2);
-    }
+            assert_eq!(dfa.states().len(), data.states, "states of {}", data.name);
+            assert_eq!(
+                dfa.patterns().len(),
+                data.patterns.len(),
+                "patterns {}",
+                data.name
+            );
+            assert_eq!(
+                dfa.accepting_states().len(),
+                data.accepting_states,
+                "accepting_states of {}",
+                data.name
+            );
+            assert_eq!(
+                dfa.char_classes().len(),
+                data.char_classes,
+                "char_classes of {}",
+                data.name
+            );
 
-    #[test]
-    fn test_dfa_minimize_2() {
-        init();
+            let minimized_dfa = dfa.minimize();
+            dfa_render_to!(&minimized_dfa, &format!("{}_min_dfa", data.name));
 
-        let mut multi_pattern_nfa = MultiPatternNfa::new();
-
-        let result = multi_pattern_nfa.add_patterns(PATTERNS);
-        if let Err(e) = result {
-            panic!("Error: {}", e);
+            assert_eq!(
+                minimized_dfa.states().len(),
+                data.min_states,
+                "min_states of {}",
+                data.name
+            );
+            assert_eq!(
+                minimized_dfa.patterns().len(),
+                data.patterns.len(),
+                "min_patterns of {}",
+                data.name
+            );
+            assert_eq!(
+                minimized_dfa.accepting_states().len(),
+                data.min_accepting_states,
+                "min_accepting_states of {}",
+                data.name
+            );
+            assert_eq!(
+                minimized_dfa.char_classes().len(),
+                data.char_classes,
+                "char_classes of {}",
+                data.name
+            );
         }
-
-        let dfa = Dfa::from(multi_pattern_nfa);
-        dfa_render_to!(&dfa, "dfa_unminimized_2");
-
-        let minimized_dfa = dfa.minimize();
-        dfa_render_to!(&minimized_dfa, "dfa_minimized_2");
-
-        assert_eq!(minimized_dfa.states().len(), 151);
-        assert_eq!(minimized_dfa.patterns().len(), 40);
-        assert_eq!(minimized_dfa.accepting_states().len(), 45);
-        assert_eq!(minimized_dfa.char_classes().len(), 50);
-    }
-
-    #[test]
-    fn test_dfa_minimize_3() {
-        init();
-
-        let mut multi_pattern_nfa = MultiPatternNfa::new();
-        let result = multi_pattern_nfa.add_pattern("in");
-        assert!(result.is_ok());
-        let result = multi_pattern_nfa.add_pattern("int");
-        assert!(result.is_ok());
-
-        let dfa = Dfa::from(multi_pattern_nfa);
-        dfa_render_to!(&dfa, "dfa_unminimized_3");
-
-        let minimized_dfa = dfa.minimize();
-        dfa_render_to!(&minimized_dfa, "dfa_minimized_3");
-
-        assert_eq!(minimized_dfa.states().len(), 4);
-        assert_eq!(minimized_dfa.patterns().len(), 2);
-        assert_eq!(minimized_dfa.accepting_states().len(), 2);
-        assert_eq!(minimized_dfa.char_classes().len(), 3);
-    }
-
-    #[test]
-    fn test_dfa_minimize_4() {
-        init();
-
-        let mut multi_pattern_nfa = MultiPatternNfa::new();
-
-        let result = multi_pattern_nfa.add_patterns(PATTERNS_2);
-        if let Err(e) = result {
-            panic!("Error: {}", e);
-        }
-        multi_render_to!(&multi_pattern_nfa, "nfa_4");
-
-        let dfa = Dfa::from(multi_pattern_nfa);
-        dfa_render_to!(&dfa, "dfa_unminimized_4");
-
-        let minimized_dfa = dfa.minimize();
-        dfa_render_to!(&minimized_dfa, "dfa_minimized_4");
-
-        assert_eq!(minimized_dfa.states().len(), 107);
-        assert_eq!(minimized_dfa.patterns().len(), 37);
-        assert_eq!(minimized_dfa.accepting_states().len(), 37);
-        assert_eq!(minimized_dfa.char_classes().len(), 23);
-    }
-
-    #[test]
-    fn test_dfa_minimize_5() {
-        init();
-
-        let mut multi_pattern_nfa = MultiPatternNfa::new();
-
-        let result = multi_pattern_nfa.add_pattern("a{1,2}b{2,}c{3}");
-        if let Err(e) = result {
-            panic!("Error: {}", e);
-        }
-        multi_render_to!(&multi_pattern_nfa, "nfa_5");
-
-        let dfa = Dfa::from(multi_pattern_nfa);
-        dfa_render_to!(&dfa, "dfa_unminimized_5");
-
-        let minimized_dfa = dfa.minimize();
-        dfa_render_to!(&minimized_dfa, "dfa_minimized_5");
-
-        assert_eq!(minimized_dfa.states().len(), 8);
-        assert_eq!(minimized_dfa.patterns().len(), 1);
-        assert_eq!(minimized_dfa.accepting_states().len(), 1);
-        assert_eq!(minimized_dfa.char_classes().len(), 3);
     }
 }
