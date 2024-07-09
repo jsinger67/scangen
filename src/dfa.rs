@@ -535,9 +535,9 @@ impl DfaState {
 #[cfg(test)]
 mod tests {
 
+    use crate::{dfa_render_to, multi_render_to};
+
     use super::*;
-    use crate::dot::{dfa_render_to, multi_render_to};
-    use std::fs::File;
 
     const PATTERNS: &[&str] = &[
         "\\r\\n|\\r|\\n",
@@ -662,22 +662,6 @@ mod tests {
     // Initialize the logger for the tests
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();
-    }
-
-    // A macro that simplifies the rendering of a dot file for test purposes
-    macro_rules! dfa_render_to {
-        ($nfa:expr, $label:expr) => {
-            let mut f = File::create(format!("{}.dot", $label)).unwrap();
-            dfa_render_to($nfa, $label, &mut f);
-        };
-    }
-
-    // A macro that simplifies the rendering of a dot file for test purposes
-    macro_rules! multi_render_to {
-        ($nfa:expr, $label:expr) => {
-            let mut f = File::create(format!("{}.dot", $label)).unwrap();
-            multi_render_to($nfa, $label, &mut f);
-        };
     }
 
     #[test]

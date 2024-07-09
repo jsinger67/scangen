@@ -292,18 +292,9 @@ impl From<StateID> for EpsilonTransition {
 
 #[cfg(test)]
 mod tests {
-    use crate::{dot::render_to, parser::parse_regex_syntax};
-    use std::fs::File;
+    use crate::{parser::parse_regex_syntax, render_to};
 
     use super::*;
-
-    // A macro that simplifies the rendering of a dot file for test purposes
-    macro_rules! render_to {
-        ($nfa:expr, $label:expr) => {
-            let mut f = File::create(concat!($label, ".dot")).unwrap();
-            render_to($nfa, $label, &mut f);
-        };
-    }
 
     #[test]
     fn test_nfa_from_ast() {

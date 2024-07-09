@@ -261,18 +261,9 @@ impl MultiNfaTransition {
 
 #[cfg(test)]
 mod tests {
-    use crate::dot::multi_render_to;
-    use std::fs::File;
+    use crate::multi_render_to;
 
     use super::*;
-
-    // A macro that simplifies the rendering of a dot file for test purposes
-    macro_rules! multi_render_to {
-        ($nfa:expr, $label:expr) => {
-            let mut f = File::create(concat!($label, ".dot")).unwrap();
-            multi_render_to($nfa, $label, &mut f);
-        };
-    }
 
     // Initialize the logger for the tests
     fn init() {

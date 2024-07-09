@@ -7,6 +7,33 @@ use regex_automata::util::primitives::StateID;
 
 use crate::{dfa::Dfa, multi_pattern_nfa::MultiPatternNfa, nfa::Nfa};
 
+/// A macro that simplifies the rendering of a dot file for a NFA.
+#[macro_export]
+macro_rules! render_to {
+    ($nfa:expr, $label:expr) => {
+        let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
+        render_to($nfa, $label, &mut f);
+    };
+}
+
+/// A macro that simplifies the rendering of a dot file for a multi-pattern NFA.
+#[macro_export]
+macro_rules! multi_render_to {
+    ($nfa:expr, $label:expr) => {
+        let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
+        multi_render_to($nfa, $label, &mut f);
+    };
+}
+
+/// A macro that simplifies the rendering of a dot file for a DFA.
+#[macro_export]
+macro_rules! dfa_render_to {
+    ($nfa:expr, $label:expr) => {
+        let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
+        dfa_render_to($nfa, $label, &mut f);
+    };
+}
+
 /// Render the NFA to a graphviz dot format.
 pub fn render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
