@@ -31,7 +31,7 @@ impl TransitionsToPartitionGroups {
 /// The DFA implementation.
 #[derive(Debug, Default)]
 pub struct Dfa {
-    // The states of the DFA.
+    // The states of the DFA. The start state is always the first state in the vector, i.e. state 0.
     states: Vec<DfaState>,
     // The patterns for the accepting states.
     patterns: Vec<String>,
@@ -57,6 +57,11 @@ impl Dfa {
     /// Get the accepting states of the DFA.
     pub(crate) fn accepting_states(&self) -> &BTreeMap<StateID, PatternID> {
         &self.accepting_states
+    }
+
+    /// Get the pattern id if the given state is an accepting state.
+    pub(crate) fn pattern_id(&self, state_id: StateID) -> Option<PatternID> {
+        self.accepting_states.get(&state_id).copied()
     }
 
     /// Get the character classes used in the DFA.
