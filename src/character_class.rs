@@ -1,23 +1,24 @@
-use regex_syntax::ast::{Ast, Position, Span};
+use std::ops::Index;
 
-use crate::CharClassId;
+use regex_automata::util::primitives::SmallIndex;
+use regex_syntax::ast::{Ast, Position, Span};
 
 /// A character class that can match a character.
 #[derive(Default, Clone)]
 pub(crate) struct CharacterClass {
-    pub(crate) id: CharClassId,
+    pub(crate) id: CharClassID,
     pub(crate) ast: ComparableAst,
 }
 
 impl CharacterClass {
-    pub(crate) fn new(id: CharClassId, ast: Ast) -> Self {
+    pub(crate) fn new(id: CharClassID, ast: Ast) -> Self {
         CharacterClass {
             id,
             ast: ComparableAst(ast),
         }
     }
 
-    pub(crate) fn id(&self) -> CharClassId {
+    pub(crate) fn id(&self) -> CharClassID {
         self.id
     }
 }
@@ -106,5 +107,61 @@ impl Default for ComparableAst {
                 column: 0,
             },
         })))
+    }
+}
+
+/// The identifier for a character class in the NFA/DFA.
+/// This is used to identify the character class in the transition table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct CharClassID(SmallIndex);
+
+impl CharClassID {
+    /// Create a new character class id.
+    #[inline]
+    pub(crate) fn new(index: usize) -> Self {
+        CharClassID(SmallIndex::new_unchecked(index))
+    }
+
+    /// Get the character class id as usize.
+    #[inline]
+    pub fn as_usize(&self) -> usize {
+        self.0.as_usize()
+    }
+}
+
+impl core::ops::Add<usize> for CharClassID {
+    type Output = CharClassID;
+
+    #[inline]
+    fn add(self, rhs: usize) -> Self::Output {
+        CharClassID(SmallIndex::new_unchecked(self.0.as_usize() + rhs))
+    }
+}
+
+impl core::ops::AddAssign<usize> for CharClassID {
+    #[inline]
+    fn add_assign(&mut self, rhs: usize) {
+        self.0 = SmallIndex::new_unchecked(self.0.as_usize() + rhs);
+    }
+}
+
+impl<T> Index<CharClassID> for [T] {
+    type Output = T;
+
+    #[inline]
+    fn index(&self, index: CharClassID) -> &Self::Output {
+        &self[index.0]
+    }
+}
+
+impl std::fmt::Display for CharClassID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.as_usize())
+    }
+}
+
+impl From<usize> for CharClassID {
+    fn from(index: usize) -> Self {
+        CharClassID::new(index)
     }
 }

@@ -4,9 +4,9 @@ use log::trace;
 use regex_automata::{util::primitives::StateID, PatternID};
 
 use crate::{
-    character_class::{CharacterClass, ComparableAst},
+    character_class::{CharClassID, CharacterClass, ComparableAst},
     nfa::{EpsilonTransition, Nfa},
-    parse_regex_syntax, unsupported, CharClassId, Result, ScanGenError, ScanGenErrorKind,
+    parse_regex_syntax, unsupported, Result, ScanGenError, ScanGenErrorKind,
 };
 
 /// A NFA that can match multiple patterns in parallel.
@@ -171,12 +171,12 @@ impl NfaWithCharClasses {
                 {
                     trace!("Found existing char class: {:?}", transition.chars());
                     new_state.transitions.push(MultiNfaTransition {
-                        chars: CharClassId::new(class_id),
+                        chars: CharClassID::new(class_id),
                         target_state: transition.target_state(),
                     });
                 } else {
                     trace!("Adding new char class: {:?}", transition.chars());
-                    let chars = CharClassId::new(char_classes.len());
+                    let chars = CharClassID::new(char_classes.len());
                     char_classes.push(CharacterClass::new(chars, transition.chars().clone()));
                     new_state.transitions.push(MultiNfaTransition {
                         chars,
@@ -228,7 +228,7 @@ impl NfaWithCharClasses {
 
     /// Calculate move(T, a) for a set of states T and a character class a.
     /// This is the set of states that can be reached from T by matching a.
-    pub(crate) fn move_set(&self, states: &[StateID], char_class: CharClassId) -> Vec<StateID> {
+    pub(crate) fn move_set(&self, states: &[StateID], char_class: CharClassID) -> Vec<StateID> {
         let mut move_set = Vec::new();
         for state in states {
             for transition in self.states()[*state].transitions() {
@@ -244,7 +244,7 @@ impl NfaWithCharClasses {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub(crate) struct MultiNfaTransition {
     // The characters to match
-    chars: CharClassId,
+    chars: CharClassID,
     // The next state to transition to
     target_state: StateID,
 }
@@ -254,7 +254,7 @@ impl MultiNfaTransition {
         self.target_state
     }
 
-    pub(crate) fn chars(&self) -> CharClassId {
+    pub(crate) fn chars(&self) -> CharClassID {
         self.chars
     }
 }
