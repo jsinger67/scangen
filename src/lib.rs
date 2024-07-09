@@ -39,3 +39,6 @@ mod match_function;
 
 /// Module that provides types related to DFA
 mod dfa;
+
+/// Module that provides types related to compiled DFAs
+mod compiled_dfa;

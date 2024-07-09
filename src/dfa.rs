@@ -199,7 +199,7 @@ impl Dfa {
                     pattern_id.as_usize(),
                     state_in_group.as_usize()
                 );
-                self.accepting_states.insert(state_id.into(), *pattern_id);
+                self.accepting_states.insert(state_id, *pattern_id);
             }
         }
 
