@@ -9,11 +9,11 @@ use regex_syntax::ast::Ast;
 
 #[derive(Debug, Clone, Default)]
 pub struct Nfa {
-    states: Vec<NfaState>,
+    pub(crate) states: Vec<NfaState>,
     // Used during NFA construction
-    start_state: StateID,
+    pub(crate) start_state: StateID,
     // Used during NFA construction
-    end_state: StateID,
+    pub(crate) end_state: StateID,
 }
 
 impl Nfa {

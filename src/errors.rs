@@ -46,6 +46,10 @@ pub enum ScanGenErrorKind {
     #[error("Unsupported regex feature: {0}")]
     UnsupportedFeature(String),
 
+    /// An error occurred during construction of the DFA.
+    #[error(transparent)]
+    DfaError(DfaError),
+
     /// An error originated from the regex-automata crate.
     /// This error is used when the regex-automata crate returns an error.
     #[error(transparent)]
@@ -84,4 +88,16 @@ pub enum RegexAutomataError {
     /// An error occurred during creation of a new state ID.
     #[error("Regex automata error: {0}")]
     StateIDError(regex_automata::util::primitives::StateIDError),
+}
+
+/// An error type for the DFA.
+#[derive(Error, Debug)]
+pub enum DfaError {
+    /// An error occurred during the construction of the DFA.
+    #[error("DFA construction error: {0}")]
+    ConstructionError(String),
+
+    /// An error occurred during the construction of a single-pattern DFA.
+    #[error("Single-pattern DFA construction error: {0}")]
+    SinglePatternDfaError(String),
 }

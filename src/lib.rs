@@ -31,6 +31,16 @@ pub use errors::{RegexAutomataError, Result, ScanGenError, ScanGenErrorKind};
 mod multi_pattern_nfa;
 pub use multi_pattern_nfa::MultiPatternNfa;
 
+/// Module that provides a type for a single-pattern DFA
+/// that can be used to match a single pattern.
+pub mod single_pattern_dfa;
+pub use single_pattern_dfa::SinglePatternDfa;
+
+/// Module that provides a type for a multi-pattern DFA
+/// that can be used to match multiple patterns in parallel.
+mod multi_pattern_dfa;
+pub use multi_pattern_dfa::MultiPatternDfa;
+
 /// Module that provides functions and types related to character classes.
 mod character_class;
 

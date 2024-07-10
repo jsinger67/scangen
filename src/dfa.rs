@@ -517,7 +517,7 @@ impl std::fmt::Display for Dfa {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct DfaState {
+pub struct DfaState {
     id: StateID,
     // The ids of the NFA states that constitute this DFA state. The id can only be used as indices
     // into the NFA states.
@@ -528,12 +528,32 @@ pub(crate) struct DfaState {
 
 impl DfaState {
     /// Create a new DFA state solely from the NFA states that constitute the DFA state.
-    pub(crate) fn new(id: StateID, nfa_states: Vec<StateID>) -> Self {
+    pub fn new(id: StateID, nfa_states: Vec<StateID>) -> Self {
         DfaState {
             id,
             nfa_states,
             marked: false,
         }
+    }
+
+    /// Get the id of the DFA state.
+    pub fn id(&self) -> StateID {
+        self.id
+    }
+
+    /// Get the NFA states that constitute the DFA state.
+    pub fn nfa_states(&self) -> &[StateID] {
+        &self.nfa_states
+    }
+
+    /// Get the marked flag of the DFA state.
+    pub fn marked(&self) -> bool {
+        self.marked
+    }
+
+    /// Set the marked flag of the DFA state.
+    pub fn set_marked(&mut self, marked: bool) {
+        self.marked = marked;
     }
 }
 

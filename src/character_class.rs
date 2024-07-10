@@ -5,13 +5,13 @@ use regex_syntax::ast::{Ast, Position, Span};
 
 /// A character class that can match a character.
 #[derive(Default, Clone)]
-pub(crate) struct CharacterClass {
+pub struct CharacterClass {
     pub(crate) id: CharClassID,
     pub(crate) ast: ComparableAst,
 }
 
 impl CharacterClass {
-    pub(crate) fn new(id: CharClassID, ast: Ast) -> Self {
+    pub fn new(id: CharClassID, ast: Ast) -> Self {
         CharacterClass {
             id,
             ast: ComparableAst(ast),
@@ -19,8 +19,13 @@ impl CharacterClass {
     }
 
     #[inline]
-    pub(crate) fn id(&self) -> CharClassID {
+    pub fn id(&self) -> CharClassID {
         self.id
+    }
+
+    #[inline]
+    pub fn ast(&self) -> &Ast {
+        &self.ast.0
     }
 }
 
