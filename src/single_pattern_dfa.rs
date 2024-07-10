@@ -1,11 +1,14 @@
+use itertools::Itertools;
 use std::collections::{BTreeMap, BTreeSet};
 
 use log::trace;
 use regex_automata::util::primitives::StateID;
 
 use crate::{
-    character_class::CharacterClass, dfa::DfaState, errors::DfaError, MultiPatternNfa, Result,
-    ScanGenError, ScanGenErrorKind,
+    character_class::CharacterClass,
+    dfa::{DfaState, Partition, StateGroup, TransitionsToPartitionGroups},
+    errors::DfaError,
+    MultiPatternNfa, Result, ScanGenError, ScanGenErrorKind,
 };
 
 /// A DFA type that can be used to match a single pattern.
@@ -139,7 +142,7 @@ impl SinglePatternDfa {
     /// Create a DFA from a multi-pattern NFA.
     /// The DFA is created using the subset construction algorithm.
     /// The multi-pattern NFA must only contain a single pattern.
-    fn try_from_nfa(nfa: MultiPatternNfa) -> Result<Self> {
+    pub fn try_from_nfa(nfa: MultiPatternNfa) -> Result<Self> {
         let MultiPatternNfa {
             nfa,
             patterns,
@@ -185,5 +188,468 @@ impl SinglePatternDfa {
         }
 
         Ok(dfa)
+    }
+
+    /// Add a representative state to the DFA.
+    /// The representative state is the first state in the group.
+    /// The accepting states are used to determine if the DFA state is an accepting state.
+    /// The new state id is returned.
+    fn add_representive_state(
+        &mut self,
+        group: &BTreeSet<StateID>,
+        accepting_states: &BTreeSet<StateID>,
+    ) -> Result<StateID> {
+        let state_id = StateID::new(self.states.len())?;
+        let state = DfaState::new(state_id, Vec::new());
+
+        // First state in group is the representative state.
+        let representative_state_id = group.first().unwrap();
+
+        trace!(
+            "Add representive state {} with id {}",
+            representative_state_id.as_usize(),
+            state_id.as_usize()
+        );
+
+        // Insert the representative state into the accepting states if any state in its group is
+        // an accepting state.
+        for state_in_group in group.iter() {
+            if accepting_states.contains(state_in_group) {
+                trace!(
+                    "* State {} is accepting state (from state {}).",
+                    state_id.as_usize(),
+                    state_in_group.as_usize()
+                );
+                self.add_accepting_state(state_id);
+            }
+        }
+
+        self.states.push(state);
+        Ok(state_id)
+    }
+
+    /// Trace out a partition of the DFA.
+    #[allow(dead_code)]
+    fn trace_partition(context: &str, partition: &[StateGroup]) {
+        trace!("Partition {}:", context);
+        for (i, group) in partition.iter().enumerate() {
+            trace!("Group {}: {:?}", i, group);
+        }
+    }
+
+    #[allow(dead_code)]
+    fn trace_transitions_to_groups(
+        state_id: StateID,
+        transitions_to_groups: &TransitionsToPartitionGroups,
+    ) {
+        trace!("Transitions of state {} to groups:", state_id.as_usize());
+        for (char_class, group) in &transitions_to_groups.0 {
+            trace!(
+                "{}:{} -> {}",
+                char_class.ast.0,
+                char_class.id.as_usize(),
+                group
+            );
+        }
+    }
+
+    /// Minimize the DFA.
+    /// The Nfa states are removed from the DFA states during minimization. They are not needed
+    /// anymore after the DFA is created.
+    pub fn minimize(&self) -> Result<Self> {
+        trace!("Minimize DFA ----------------------------");
+        let mut partition_old = self.calculate_initial_partition();
+        let mut partition_new = Partition::new();
+        let mut changed = true;
+        Self::trace_partition("initial", &partition_old);
+
+        while changed {
+            partition_new = self.calculate_new_partition(&partition_old);
+            Self::trace_partition("new", &partition_new);
+            changed = partition_new != partition_old;
+            partition_old.clone_from(&partition_new);
+        }
+
+        self.create_from_partition(&partition_new)
+    }
+
+    /// The start partition is created as follows:
+    /// 1. The accepting states are put in a partition with id 0.
+    ///    This follows from the constraint of the DFA that only one pattern can match.
+    /// 2. The non-accepting states are put together in a partition with id 1.
+    ///
+    /// The partitions are stored in a vector of vectors.
+    ///
+    /// The key building function for the Itertools::chunk_by method is used to create the
+    /// partitions. For accepting states the key is the state id, for non-accepting states
+    /// the key is the state id of the first non-accepting state.
+    fn calculate_initial_partition(&self) -> Partition {
+        let group_id_non_accepting_states: StateID = StateID::new_unchecked(1);
+        self.states
+            .clone()
+            .into_iter()
+            .chunk_by(|state| {
+                if self.accepting_states.contains(&state.id()) {
+                    StateID::new_unchecked(0)
+                } else {
+                    group_id_non_accepting_states
+                }
+            })
+            .into_iter()
+            .fold(Partition::new(), |mut partitions, (_key, group)| {
+                let state_group = group.into_iter().fold(StateGroup::new(), |mut acc, state| {
+                    acc.insert(state.id());
+                    acc
+                });
+                partitions.push(state_group);
+                partitions
+            })
+    }
+
+    /// Calculate the new partition based on the old partition.
+    /// We try to split the groups of the partition based on the transitions of the DFA.
+    /// The new partition is calculated by iterating over the old partition and the states
+    /// in the groups. For each state in a group we check if the transitions to the states in the
+    /// old partition's groups are the same. If the transitions are the same, the state is put in
+    /// the same group as the other states with the same transitions. If the transitions are
+    /// different, the state is put in a new group.
+    /// The new partition is returned.
+    fn calculate_new_partition(&self, partition: &[StateGroup]) -> Partition {
+        let mut new_partition = Partition::new();
+        for (index, group) in partition.iter().enumerate() {
+            // The new group receives the states from the old group which are distiguishable from
+            // the other states in group.
+            self.split_group(index, group, partition)
+                .into_iter()
+                .for_each(|new_group| {
+                    new_partition.push(new_group);
+                });
+        }
+        new_partition
+    }
+
+    fn split_group(
+        &self,
+        group_index: usize,
+        group: &StateGroup,
+        partition: &[StateGroup],
+    ) -> Partition {
+        // If the group contains only one state, the group can't be split further.
+        if group.len() == 1 {
+            return vec![group.clone()];
+        }
+        trace!("Split group {}: {:?}", group_index, group);
+        let mut transition_map_to_states: BTreeMap<TransitionsToPartitionGroups, StateGroup> =
+            BTreeMap::new();
+        for state_id in group {
+            let transitions_to_partition =
+                self.build_transitions_to_partition_group(*state_id, partition);
+            transition_map_to_states
+                .entry(transitions_to_partition)
+                .or_default()
+                .insert(*state_id);
+        }
+        transition_map_to_states
+            .into_values()
+            .collect::<Partition>()
+    }
+
+    /// Build a modified transition data structure of a given DFA state that maps states to the
+    /// partition group.
+    /// The partition group is the index of the group in the partition.
+    /// The modified transition data structure is returned.
+    /// The modified transition data structure is used to determine if two states are distinguish
+    /// based on the transitions of the DFA.
+    fn build_transitions_to_partition_group(
+        &self,
+        state_id: StateID,
+        partition: &[StateGroup],
+    ) -> TransitionsToPartitionGroups {
+        if let Some(transitions_of_state) = self.transitions.get(&state_id) {
+            let mut transitions_to_partition_groups = TransitionsToPartitionGroups::new();
+            for transition in transitions_of_state {
+                let partition_group = self.find_group(*transition.1, partition).unwrap();
+                transitions_to_partition_groups.insert(transition.0.clone(), partition_group);
+            }
+            Self::trace_transitions_to_groups(state_id, &transitions_to_partition_groups);
+            transitions_to_partition_groups
+        } else {
+            trace!("** State {} has no transitions.", state_id.as_usize());
+            TransitionsToPartitionGroups::new()
+        }
+    }
+
+    fn find_group(&self, state_id: StateID, partition: &[StateGroup]) -> Option<usize> {
+        partition.iter().position(|group| group.contains(&state_id))
+    }
+
+    /// Create a DFA from a partition.
+    /// If a StateGroup contains more than one state, the states are merged into one state.
+    /// The transitions are updated accordingly.
+    /// The accepting states are updated accordingly.
+    /// The new DFA is returned.
+    fn create_from_partition(&self, partition: &[StateGroup]) -> Result<Self> {
+        trace!("Create DFA ------------------------------");
+        trace!("from partition {:?}", partition);
+
+        let mut dfa = SinglePatternDfa::new(self.pattern.clone());
+        dfa.char_classes.clone_from(&self.char_classes);
+        dfa.transitions = self.transitions.clone();
+
+        for group in partition {
+            // For each group we add a representative state to the DFA.
+            // It's id is the index of the group in the partition.
+            // This function also updates the accepting states of the DFA.
+            dfa.add_representive_state(group, &self.accepting_states)?;
+        }
+
+        // Then renumber the states in the transitions.
+        dfa.update_transitions(partition);
+
+        trace!("Minimized DFA:\n{}", dfa);
+
+        Ok(dfa)
+    }
+
+    fn update_transitions(&mut self, partition: &[StateGroup]) {
+        // Create a vector because we dont want to mess the transitins map while renumbering.
+        let mut transitions = self
+            .transitions
+            .iter()
+            .map(|(s, t)| (*s, t.clone()))
+            .collect::<Vec<_>>();
+
+        Self::merge_transitions(partition, &mut transitions);
+        Self::renumber_states_in_transitions(partition, &mut transitions);
+
+        self.transitions = transitions.into_iter().collect();
+    }
+
+    fn merge_transitions(
+        partition: &[BTreeSet<StateID>],
+        transitions: &mut Vec<(StateID, BTreeMap<CharacterClass, StateID>)>,
+    ) {
+        // Remove all transitions that do not belong to the representive states of a group.
+        // The representive states are the first states in the groups.
+        for group in partition {
+            debug_assert!(!group.is_empty());
+            if group.len() == 1 {
+                continue;
+            }
+            let representive_state_id = group.first().unwrap();
+            for state_id in group.iter().skip(1) {
+                Self::merge_transitions_of_state(*state_id, *representive_state_id, transitions);
+            }
+        }
+    }
+
+    fn merge_transitions_of_state(
+        state_id: StateID,
+        representive_state_id: StateID,
+        transitions: &mut Vec<(StateID, BTreeMap<CharacterClass, StateID>)>,
+    ) {
+        trace!(
+            "Merge transitions of state {} into representive state {}",
+            state_id.as_usize(),
+            representive_state_id.as_usize()
+        );
+        if let Some(rep_pos) = transitions
+            .iter()
+            .position(|(s, _)| *s == representive_state_id)
+        {
+            let mut rep_trans = transitions.get_mut(rep_pos).unwrap().1.clone();
+            if let Some(pos) = transitions.iter().position(|(s, _)| *s == state_id) {
+                let (_, transitions_of_state) = transitions.get_mut(pos).unwrap();
+                for (char_class, target_state) in transitions_of_state.iter() {
+                    rep_trans.insert(char_class.clone(), *target_state);
+                }
+                // Remove the transitions of the state that is merged into the representative state.
+                trace!("Remove transitions of state {}", state_id.as_usize());
+                transitions.remove(pos);
+            }
+            transitions[rep_pos].1 = rep_trans;
+        }
+    }
+
+    fn renumber_states_in_transitions(
+        partition: &[StateGroup],
+        transitions: &mut [(StateID, BTreeMap<CharacterClass, StateID>)],
+    ) {
+        let find_group_of_state = |state_id: StateID| -> StateID {
+            for (group_id, group) in partition.iter().enumerate() {
+                if group.contains(&state_id) {
+                    return StateID::new_unchecked(group_id);
+                }
+            }
+            panic!("State {} not found in partition.", state_id.as_usize());
+        };
+
+        for transition in transitions.iter_mut() {
+            transition.0 = find_group_of_state(transition.0);
+            for target_state in transition.1.values_mut() {
+                *target_state = find_group_of_state(*target_state);
+            }
+        }
+    }
+}
+
+impl TryFrom<MultiPatternNfa> for SinglePatternDfa {
+    type Error = crate::errors::ScanGenError;
+
+    fn try_from(nfa: MultiPatternNfa) -> Result<Self> {
+        SinglePatternDfa::try_from_nfa(nfa)
+    }
+}
+
+impl std::fmt::Display for SinglePatternDfa {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "SinglePatternDfa:")?;
+        writeln!(f, "Pattern: {}", self.pattern)?;
+        writeln!(f, "States:")?;
+        for state in &self.states {
+            writeln!(f, "{}", state.id().as_usize())?;
+        }
+        writeln!(f, "Accepting states: {:?}", self.accepting_states)?;
+        writeln!(f, "Char classes:")?;
+        for char_class in &self.char_classes {
+            writeln!(f, "{}", char_class.ast.0)?;
+        }
+        writeln!(f, "Transitions:")?;
+        for (from, transitions) in &self.transitions {
+            for (on, to) in transitions {
+                writeln!(
+                    f,
+                    "{} -{}-> {}",
+                    from.as_usize(),
+                    self.char_classes[on.id().as_usize()].ast.0,
+                    to.as_usize()
+                )?;
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{multi_render_to, render_single_dfa_to};
+
+    use super::*;
+    // A data type that provides test data for the DFA minimization tests.
+    struct TestData {
+        name: &'static str,
+        pattern: &'static str,
+        states: usize,
+        accepting_states: usize,
+        char_classes: usize,
+        min_states: usize,
+        min_accepting_states: usize,
+    }
+
+    // Test data for the DFA minimization tests.
+    const TEST_DATA: &[TestData] = &[
+        TestData {
+            name: "dragon",
+            pattern: "(a|b)*abb",
+            states: 5,
+            accepting_states: 1,
+            char_classes: 2,
+            min_states: 4,
+            min_accepting_states: 1,
+        },
+        TestData {
+            name: "int",
+            pattern: "int",
+            states: 4,
+            accepting_states: 1,
+            char_classes: 3,
+            min_states: 4,
+            min_accepting_states: 1,
+        },
+        TestData {
+            name: "bounds",
+            pattern: "a{1,2}b{2,}c{3}",
+            states: 9,
+            accepting_states: 1,
+            char_classes: 3,
+            min_states: 8,
+            min_accepting_states: 1,
+        },
+        // "[A-Z][a-z]*([ ][A-Z][a-z]*)*[ ][A-Z][A-Z]"
+        TestData {
+            name: "city_and_state",
+            pattern: "[A-Z][a-z]*([ ][A-Z][a-z]*)*[ ][A-Z][A-Z]",
+            states: 7,
+            accepting_states: 1,
+            char_classes: 3,
+            min_states: 6,
+            min_accepting_states: 1,
+        },
+    ];
+
+    // Initialize the logger for the tests
+    fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
+
+    #[test]
+    fn test_single_dfa_minimize() {
+        init();
+
+        // Iterate over the test data and run the tests.
+        for data in TEST_DATA {
+            let mut multi_pattern_nfa = MultiPatternNfa::new();
+
+            let result = multi_pattern_nfa.add_pattern(data.pattern);
+            if let Err(e) = result {
+                panic!("Error: {}", e);
+            }
+            multi_render_to!(&multi_pattern_nfa, &format!("{}_nfa", data.name));
+
+            let dfa = SinglePatternDfa::try_from(multi_pattern_nfa).unwrap();
+            render_single_dfa_to!(&dfa, &format!("{}_single_dfa", data.name));
+
+            assert_eq!(dfa.states().len(), data.states, "states of {}", data.name);
+            assert_eq!(dfa.pattern, data.pattern, "patterns {}", data.name);
+            assert_eq!(
+                dfa.accepting_states().len(),
+                data.accepting_states,
+                "accepting_states of {}",
+                data.name
+            );
+            assert_eq!(
+                dfa.char_classes().len(),
+                data.char_classes,
+                "char_classes of {}",
+                data.name
+            );
+
+            let minimized_dfa = dfa.minimize().unwrap();
+            render_single_dfa_to!(&minimized_dfa, &format!("{}_min_single_dfa", data.name));
+
+            assert_eq!(
+                minimized_dfa.states().len(),
+                data.min_states,
+                "min_states of {}",
+                data.name
+            );
+            assert_eq!(
+                minimized_dfa.pattern, data.pattern,
+                "min_pattern of {}",
+                data.name
+            );
+            assert_eq!(
+                minimized_dfa.accepting_states().len(),
+                data.min_accepting_states,
+                "min_accepting_states of {}",
+                data.name
+            );
+            assert_eq!(
+                minimized_dfa.char_classes().len(),
+                data.char_classes,
+                "char_classes of {}",
+                data.name
+            );
+        }
     }
 }

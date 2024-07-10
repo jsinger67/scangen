@@ -10,20 +10,20 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::{character_class::CharacterClass, MultiPatternNfa, Result};
 
 // The type definitions for the subset construction algorithm.
-type StateGroup = BTreeSet<StateID>;
-type Partition = Vec<StateGroup>;
+pub(crate) type StateGroup = BTreeSet<StateID>;
+pub(crate) type Partition = Vec<StateGroup>;
 
 // A data type that is calcuated from the transitions of a DFA state so that for each character
 // class the target state is mapped to the partition group it belongs to.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct TransitionsToPartitionGroups(Vec<(CharacterClass, usize)>);
+pub(crate) struct TransitionsToPartitionGroups(pub(crate) Vec<(CharacterClass, usize)>);
 
 impl TransitionsToPartitionGroups {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         TransitionsToPartitionGroups(Vec::new())
     }
 
-    fn insert(&mut self, char_class: CharacterClass, partition_group: usize) {
+    pub(crate) fn insert(&mut self, char_class: CharacterClass, partition_group: usize) {
         self.0.push((char_class, partition_group));
     }
 }
