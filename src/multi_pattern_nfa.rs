@@ -135,7 +135,7 @@ pub struct NfaWithCharClasses {
     states: Vec<MultiNfaState>,
 }
 impl NfaWithCharClasses {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             pattern: String::new(),
             states: vec![MultiNfaState::default()],
@@ -164,7 +164,7 @@ impl NfaWithCharClasses {
 
     // Move the states of the given NFA to the own NFA and thereby consume the given NFA.
     // Also we convert the character classes of the given NFA to CharacterClassIds.
-    fn append(&mut self, char_classes: &mut Vec<CharacterClass>, nfa: Nfa) {
+    pub(crate) fn append(&mut self, char_classes: &mut Vec<CharacterClass>, nfa: Nfa) {
         nfa.states().iter().for_each(|state| {
             let mut new_state = MultiNfaState {
                 state: state.id(),

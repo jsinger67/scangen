@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+
 use log::trace;
 use regex_automata::{util::primitives::StateID, Match, Span};
 
@@ -11,36 +12,24 @@ use crate::{character_class::CharacterClass, dfa::Dfa, match_function::MatchFunc
 ///
 /// MatchFunctions are not Clone nor Copy, so we aggregate them into a new struct CompiledDfa
 /// which is Clone and Copy neither.
-pub(crate) struct CompiledDfa {
+pub struct CompiledDfa {
     // The base DFA
     dfa: Dfa,
     // The match functions for the DFA
     match_functions: Vec<MatchFunction>,
     // The current state of the DFA during matching
     current_state: StateID,
-    // The current position in the input string
-    current_position: usize,
-    // The start position of the current match
-    start_position: Option<usize>,
-    // The end position of the current match
-    end_position: Option<usize>,
-    // The last accepting state of the current match
-    last_accepting_state: Option<StateID>,
-    // The position of the last accepting state
-    last_accepting_position: Option<usize>,
+    // The state of matching
+    matching_state: MatchingState,
 }
 
 impl CompiledDfa {
-    pub(crate) fn new(dfa: Dfa) -> Self {
+    pub fn new(dfa: Dfa) -> Self {
         CompiledDfa {
             dfa,
             match_functions: Vec::new(),
             current_state: StateID::new_unchecked(0),
-            current_position: 0,
-            start_position: None,
-            end_position: None,
-            last_accepting_state: None,
-            last_accepting_position: None,
+            matching_state: MatchingState::new(),
         }
     }
 
@@ -67,44 +56,34 @@ impl CompiledDfa {
 
     pub(crate) fn reset(&mut self) {
         self.current_state = StateID::new_unchecked(0);
-        self.current_position = 0;
-        self.start_position = None;
-        self.end_position = None;
-        self.last_accepting_state = None;
-        self.last_accepting_position = None;
-    }
-
-    pub(crate) fn reset_match(&mut self) {
-        self.start_position = None;
-        self.end_position = None;
+        self.matching_state = MatchingState::new();
     }
 
     pub(crate) fn current_state(&self) -> StateID {
         self.current_state
     }
 
-    pub(crate) fn current_position(&self) -> usize {
-        self.current_position
+    pub(crate) fn current_match(&self) -> Option<Span> {
+        self.matching_state.last_match()
     }
 
-    pub(crate) fn start_position(&self) -> Option<usize> {
-        self.start_position
-    }
-
-    pub(crate) fn end_position(&self) -> Option<usize> {
-        self.end_position
-    }
-
-    pub(crate) fn last_accepting_state(&self) -> Option<StateID> {
-        self.last_accepting_state
-    }
-
-    pub(crate) fn last_accepting_position(&self) -> Option<usize> {
-        self.last_accepting_position
-    }
-
-    pub(crate) fn set_current_state(&mut self, state: StateID) {
-        self.current_state = state;
+    pub(crate) fn advance(&mut self, c_pos: usize, c: char) {
+        // Get the transitions for the current state
+        if let Some(transitions) = self.dfa.transitions().get(&self.current_state) {
+            if let Some(next_state) = Self::find_transition(transitions, &self.match_functions, c) {
+                if self.dfa.accepting_states().contains_key(&next_state) {
+                    self.matching_state.transition_to_accepting(c_pos, c);
+                } else {
+                    self.matching_state.transition_to_non_accepting(c_pos);
+                }
+                self.current_state = next_state;
+            } else {
+                self.matching_state.no_transition();
+            }
+        } else {
+            // Start search on the next character
+            self.matching_state.no_transition();
+        }
     }
 
     /// Executes a leftmost search and returns the first match that is found, if one exists.
@@ -120,47 +99,36 @@ impl CompiledDfa {
     pub(crate) fn find(&mut self, input: &str) -> Option<Match> {
         self.reset();
         let chars = input.char_indices();
-        let mut current_match: Option<Match> = None;
-        for (i, c) in chars {
+        for (c_pos, c) in chars {
             // Get the transitions for the current state
             if let Some(transitions) = self.dfa.transitions().get(&self.current_state) {
-                if self.start_position.is_none() {
-                    // Start of a new match
-                    self.start_position = Some(i);
-                }
                 if let Some(next_state) =
                     Self::find_transition(transitions, &self.match_functions, c)
                 {
-                    self.current_state = next_state;
-                    self.current_position = i + c.len_utf8();
-                    if self.dfa.pattern_id(self.current_state).is_some() {
-                        self.last_accepting_state = Some(self.current_state);
-                        self.last_accepting_position = Some(self.current_position);
-                        self.end_position = Some(i + c.len_utf8());
-                        // Continue search on the next character for a longer match
+                    if self.dfa.accepting_states().contains_key(&next_state) {
+                        self.matching_state.transition_to_accepting(c_pos, c);
+                    } else {
+                        self.matching_state.transition_to_non_accepting(c_pos);
                     }
-                } else if self.last_accepting_state.is_some() {
-                    // We had a match, return it
-                    break;
+                    self.current_state = next_state;
                 } else {
-                    // We didn't have a match, continue search
-                    self.reset_match();
+                    self.matching_state.no_transition();
                 }
             } else {
                 // Start search on the next character
+                self.matching_state.no_transition();
+                if self.matching_state.is_longest_match() {
+                    break;
+                }
                 continue;
             }
         }
-        if let Some(state_id) = self.last_accepting_state {
-            current_match = Some(Match::new(
-                self.dfa.pattern_id(state_id).unwrap(),
-                Span {
-                    start: self.start_position.unwrap(),
-                    end: self.end_position.unwrap(),
-                },
-            ));
+        if let Some(span) = self.matching_state.last_match() {
+            let pattern_id = self.dfa.accepting_states()[&self.current_state];
+            Some(Match::new(pattern_id, span))
+        } else {
+            None
         }
-        current_match
     }
 
     #[inline]
@@ -183,6 +151,160 @@ impl CompiledDfa {
         }
         None
     }
+}
+
+/// The state of the DFA during matching.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub(crate) struct MatchingState {
+    // The current state of the DFA during matching
+    state: InnerMatchingState,
+    // The start position of the current match
+    start_position: Option<usize>,
+    // The end position of the current match
+    end_position: Option<usize>,
+}
+
+impl MatchingState {
+    pub(crate) fn new() -> Self {
+        MatchingState::default()
+    }
+
+    // See matching_state.dot for the state diagram
+    pub(crate) fn no_transition(&mut self) {
+        match self.state {
+            InnerMatchingState::None => {
+                // We had no match, continue search
+            }
+            InnerMatchingState::Start => *self = MatchingState::default(),
+            InnerMatchingState::Accepting => {
+                // We had a recorded match, return to it
+                *self = MatchingState {
+                    state: InnerMatchingState::Longest,
+                    ..self.clone()
+                }
+            }
+            InnerMatchingState::Longest => {
+                // We had the longest match, keep it
+            }
+        };
+    }
+
+    // See matching_state.dot for the state diagram
+    pub(crate) fn transition_to_non_accepting(&mut self, i: usize) {
+        match self.state {
+            InnerMatchingState::None => {
+                *self = MatchingState {
+                    state: InnerMatchingState::Start,
+                    start_position: Some(i),
+                    ..self.clone()
+                }
+            }
+            InnerMatchingState::Start => {
+                // Continue search for an accepting state
+            }
+            InnerMatchingState::Accepting => {
+                // We had a match, keep it and continue search for a longer match
+            }
+            InnerMatchingState::Longest => {
+                // We had the longest match, keep it
+            }
+        }
+    }
+
+    // See matching_state.dot for the state diagram
+    pub(crate) fn transition_to_accepting(&mut self, i: usize, c: char) {
+        match self.state {
+            InnerMatchingState::None => {
+                *self = MatchingState {
+                    state: InnerMatchingState::Start,
+                    start_position: Some(i),
+                    end_position: Some(i + c.len_utf8()),
+                }
+            }
+            InnerMatchingState::Start => {
+                *self = MatchingState {
+                    state: InnerMatchingState::Accepting,
+                    end_position: Some(i + c.len_utf8()),
+                    ..self.clone()
+                }
+            }
+            InnerMatchingState::Accepting => {
+                *self = MatchingState {
+                    end_position: Some(i + c.len_utf8()),
+                    ..self.clone()
+                }
+            }
+            InnerMatchingState::Longest => {
+                // We had the longest match, keep it
+            }
+        }
+    }
+
+    pub(crate) fn is_no_match(&self) -> bool {
+        matches!(self.state, InnerMatchingState::None)
+    }
+
+    pub(crate) fn is_start_match(&self) -> bool {
+        matches!(self.state, InnerMatchingState::Start)
+    }
+
+    pub(crate) fn is_accepting_match(&self) -> bool {
+        matches!(self.state, InnerMatchingState::Accepting)
+    }
+
+    pub(crate) fn is_longest_match(&self) -> bool {
+        matches!(self.state, InnerMatchingState::Longest)
+    }
+
+    pub(crate) fn last_match(&self) -> Option<Span> {
+        if let (Some(start), Some(end)) = (self.start_position, self.end_position) {
+            Some(Span { start, end })
+        } else {
+            None
+        }
+    }
+}
+
+/// The state enumeration of the DFA during matching.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+enum InnerMatchingState {
+    /// No match recorded so far.
+    /// Continue search on the next character.
+    ///
+    /// Current state is not an accepting state.
+    ///
+    /// If a transition to a non-accepting state is found, record the start of the match and switch
+    /// to StartMatch.
+    /// If a transition to an accepting state is found, record the match and switch to AcceptingMatch.
+    /// If no transition is found stay in NoMatch.
+    #[default]
+    None,
+
+    /// Start of a match has been recorded.
+    /// Continue search for an accepting state.
+    ///
+    /// Current state is not an accepting state.
+    ///
+    /// If a transition is found, record the match and switch to AcceptingMatch.
+    /// If no transition is found, reset the match and switch to NoMatch.
+    Start,
+
+    /// Match has been recorded before, continue search for a longer match.
+    ///
+    /// State is an accepting state.
+    ///
+    /// If no transition is found, switch to LongestMatch.
+    /// If a transition to a non-accepting state is found stay in AcceptingMatch.
+    /// If a transition to an accepting state is found, record the match and stay in AcceptingMatch.
+    Accepting,
+
+    /// Match has been recorded before.
+    /// The match is the longest match found, no longer match is possible.
+    ///
+    /// State is an accepting state.
+    ///
+    /// This state can't be left.
+    Longest,
 }
 
 #[cfg(test)]

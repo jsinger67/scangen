@@ -1,0 +1,28 @@
+digraph {
+    label="MatchingState";
+    rankdir="LR";
+    node [shape="ellipse"];
+    // Nodes --------------------------------------------------
+    Init [style="invis"];
+    No [color="blue", penwidth=3];
+    Start;
+    Accepting [color="green", penwidth=3];
+    Longest [color="red", penwidth=3];
+    // Edges --------------------------------------------------
+    // Start
+    Init -> No [label="start"];
+    // No
+    No -> Start [label="trans. to non-acc. state:\nsave start position"];
+    No -> Accepting [label="trans. to acc. state:\nsave start and end position"];
+    No -> No [label="no trans.:\n-"];
+    // Start
+    Start -> Accepting [label="trans. to acc. state:\nsave end position"];
+    Start -> Start [label="trans. to non-acc. state:\n-"];
+    Start -> No [label="no trans.:\ninvalidate start position"];
+    // Accepting
+    Accepting -> Accepting [label="trans. to acc. state:\nupdate end position"];
+    Accepting -> Accepting [label="trans. to non-acc. state:\n-"];
+    Accepting -> Longest [label="no trans.:\nrecord start end last end position"];
+    // Longest
+    Longest -> Longest [label="always"];
+}
