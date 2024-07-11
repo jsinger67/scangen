@@ -59,6 +59,7 @@ impl MultiPatternNfa {
 
         let pattern_id = PatternID::new(self.patterns.len())?;
         let mut nfa: Nfa = parse_regex_syntax(pattern)?.try_into()?;
+        nfa.set_pattern(pattern);
         self.patterns.push(pattern.to_string());
 
         // Shift the state ids of the given NFA
@@ -129,17 +130,30 @@ impl MultiNfaState {
 
 #[derive(Debug, Clone, Default)]
 pub struct NfaWithCharClasses {
+    #[allow(dead_code)]
+    pattern: String,
     states: Vec<MultiNfaState>,
 }
 impl NfaWithCharClasses {
     fn new() -> Self {
         Self {
+            pattern: String::new(),
             states: vec![MultiNfaState::default()],
         }
     }
 
     pub(crate) fn states(&self) -> &[MultiNfaState] {
         &self.states
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn pattern(&self) -> &str {
+        &self.pattern
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn set_pattern(&mut self, pattern: &str) {
+        self.pattern = pattern.to_string();
     }
 
     pub(crate) fn add_epsilon_transition(&mut self, from: StateID, target_state: StateID) {
@@ -261,7 +275,7 @@ impl MultiNfaTransition {
 
 #[cfg(test)]
 mod tests {
-    use crate::multi_render_to;
+    use crate::multi_nfa_render_to;
 
     use super::*;
 
@@ -285,7 +299,7 @@ mod tests {
                 .collect()
         );
 
-        multi_render_to!(&multi_pattern_nfa, "multi_a");
+        multi_nfa_render_to!(&multi_pattern_nfa, "multi_a");
 
         let pattern_id = multi_pattern_nfa.add_pattern("b").unwrap();
         assert_eq!(
@@ -293,7 +307,7 @@ mod tests {
             &["a".to_string(), "b".to_string()]
         );
 
-        multi_render_to!(&multi_pattern_nfa, "multi_a_or_b");
+        multi_nfa_render_to!(&multi_pattern_nfa, "multi_a_or_b");
 
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
@@ -310,7 +324,7 @@ mod tests {
         // The pattern "a" already exists, so the terminal id should be the same as before
         assert_eq!(pattern_id, PatternID::new_unchecked(0));
 
-        multi_render_to!(&multi_pattern_nfa, "multi_a_or_b2");
+        multi_nfa_render_to!(&multi_pattern_nfa, "multi_a_or_b2");
 
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
@@ -334,7 +348,7 @@ mod tests {
         let result = multi_pattern_nfa.add_pattern("(a|b)*abb");
         assert!(result.is_ok());
 
-        multi_render_to!(&multi_pattern_nfa, "multi_complex");
+        multi_nfa_render_to!(&multi_pattern_nfa, "multi_complex");
 
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
@@ -402,6 +416,6 @@ mod tests {
             }
         }
 
-        multi_render_to!(&multi_pattern_nfa, "multiple_patterns");
+        multi_nfa_render_to!(&multi_pattern_nfa, "multiple_patterns");
     }
 }

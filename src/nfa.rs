@@ -9,6 +9,7 @@ use regex_syntax::ast::Ast;
 
 #[derive(Debug, Clone, Default)]
 pub struct Nfa {
+    pub(crate) pattern: String,
     pub(crate) states: Vec<NfaState>,
     // Used during NFA construction
     pub(crate) start_state: StateID,
@@ -19,6 +20,7 @@ pub struct Nfa {
 impl Nfa {
     pub(crate) fn new() -> Self {
         Self {
+            pattern: String::new(),
             states: vec![NfaState::default()],
             start_state: StateID::default(),
             end_state: StateID::default(),
@@ -43,6 +45,15 @@ impl Nfa {
 
     pub(crate) fn states(&self) -> &[NfaState] {
         &self.states
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn pattern(&self) -> &str {
+        &self.pattern
+    }
+
+    pub(crate) fn set_pattern(&mut self, pattern: &str) {
+        self.pattern = pattern.to_string();
     }
 
     pub(crate) fn add_state(&mut self, state: NfaState) {
@@ -292,7 +303,7 @@ impl From<StateID> for EpsilonTransition {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parser::parse_regex_syntax, render_to};
+    use crate::{nfa_render_to, parser::parse_regex_syntax};
 
     use super::*;
 
@@ -315,7 +326,7 @@ mod tests {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax("ab").unwrap().try_into().unwrap();
 
-        render_to!(&nfa, "ab");
+        nfa_render_to!(&nfa, "ab");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -343,7 +354,7 @@ mod tests {
         let nfa2: Nfa = parse_regex_syntax("b").unwrap().try_into().unwrap();
         nfa1.alternation(nfa2);
 
-        render_to!(&nfa1, "a_or_b");
+        nfa_render_to!(&nfa1, "a_or_b");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa1.states.len(), 6);
@@ -357,7 +368,7 @@ mod tests {
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
         nfa.zero_or_more();
 
-        render_to!(&nfa, "a_many");
+        nfa_render_to!(&nfa, "a_many");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -371,7 +382,7 @@ mod tests {
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
         nfa.zero_or_one();
 
-        render_to!(&nfa, "a_zero_or_one");
+        nfa_render_to!(&nfa, "a_zero_or_one");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 3);
@@ -385,7 +396,7 @@ mod tests {
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
         nfa.one_or_more();
 
-        render_to!(&nfa, "a_one_or_more");
+        nfa_render_to!(&nfa, "a_one_or_more");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -399,7 +410,7 @@ mod tests {
         let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
         nfa.zero_or_more();
 
-        render_to!(&nfa, "a_zero_or_more");
+        nfa_render_to!(&nfa, "a_zero_or_more");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 4);
@@ -412,7 +423,7 @@ mod tests {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax("(a|b)*abb").unwrap().try_into().unwrap();
 
-        render_to!(&nfa, "complex");
+        nfa_render_to!(&nfa, "complex");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 14);
@@ -437,7 +448,7 @@ mod tests {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax("a{3,}").unwrap().try_into().unwrap();
 
-        render_to!(&nfa, "a_at_least_3");
+        nfa_render_to!(&nfa, "a_at_least_3");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 10);
@@ -450,7 +461,7 @@ mod tests {
         // Create an example AST and convert the AST to an NFA
         let nfa: Nfa = parse_regex_syntax("a{3,5}").unwrap().try_into().unwrap();
 
-        render_to!(&nfa, "a_bounded_3_5");
+        nfa_render_to!(&nfa, "a_bounded_3_5");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 12);
@@ -467,7 +478,7 @@ mod tests {
             .try_into()
             .unwrap();
 
-        render_to!(&nfa, "digit");
+        nfa_render_to!(&nfa, "digit");
 
         // Add assertions here to validate the NFA
         assert_eq!(nfa.states.len(), 2);

@@ -142,7 +142,7 @@ impl SinglePatternDfa {
     /// Create a DFA from a multi-pattern NFA.
     /// The DFA is created using the subset construction algorithm.
     /// The multi-pattern NFA must only contain a single pattern.
-    pub fn try_from_nfa(nfa: MultiPatternNfa) -> Result<Self> {
+    pub fn try_from_multi_pattern_nfa(nfa: MultiPatternNfa) -> Result<Self> {
         let MultiPatternNfa {
             nfa,
             patterns,
@@ -497,7 +497,7 @@ impl TryFrom<MultiPatternNfa> for SinglePatternDfa {
     type Error = crate::errors::ScanGenError;
 
     fn try_from(nfa: MultiPatternNfa) -> Result<Self> {
-        SinglePatternDfa::try_from_nfa(nfa)
+        SinglePatternDfa::try_from_multi_pattern_nfa(nfa)
     }
 }
 
@@ -532,7 +532,7 @@ impl std::fmt::Display for SinglePatternDfa {
 
 #[cfg(test)]
 mod tests {
-    use crate::{multi_render_to, render_single_dfa_to};
+    use crate::{multi_nfa_render_to, single_dfa_render_to};
 
     use super::*;
     // A data type that provides test data for the DFA minimization tests.
@@ -604,10 +604,10 @@ mod tests {
             if let Err(e) = result {
                 panic!("Error: {}", e);
             }
-            multi_render_to!(&multi_pattern_nfa, &format!("{}_nfa", data.name));
+            multi_nfa_render_to!(&multi_pattern_nfa, &format!("{}_nfa", data.name));
 
             let dfa = SinglePatternDfa::try_from(multi_pattern_nfa).unwrap();
-            render_single_dfa_to!(&dfa, &format!("{}_single_dfa", data.name));
+            single_dfa_render_to!(&dfa, &format!("{}_single_dfa", data.name));
 
             assert_eq!(dfa.states().len(), data.states, "states of {}", data.name);
             assert_eq!(dfa.pattern, data.pattern, "patterns {}", data.name);
@@ -625,7 +625,7 @@ mod tests {
             );
 
             let minimized_dfa = dfa.minimize().unwrap();
-            render_single_dfa_to!(&minimized_dfa, &format!("{}_min_single_dfa", data.name));
+            single_dfa_render_to!(&minimized_dfa, &format!("{}_min_single_dfa", data.name));
 
             assert_eq!(
                 minimized_dfa.states().len(),

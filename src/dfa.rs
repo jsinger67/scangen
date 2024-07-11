@@ -560,7 +560,7 @@ impl DfaState {
 #[cfg(test)]
 mod tests {
 
-    use crate::{dfa_render_to, multi_render_to};
+    use crate::{dfa_render_to, multi_nfa_render_to};
 
     use super::*;
 
@@ -696,7 +696,7 @@ mod tests {
         assert!(result.is_ok());
         let result = multi_pattern_nfa.add_pattern("(a|b)*abb");
         assert!(result.is_ok());
-        multi_render_to!(&multi_pattern_nfa, "input_nfa");
+        multi_nfa_render_to!(&multi_pattern_nfa, "input_nfa");
 
         let dfa = Dfa::try_from(multi_pattern_nfa).unwrap();
 
@@ -757,7 +757,7 @@ mod tests {
             if let Err(e) = result {
                 panic!("Error: {}", e);
             }
-            multi_render_to!(&multi_pattern_nfa, &format!("{}_nfa", data.name));
+            multi_nfa_render_to!(&multi_pattern_nfa, &format!("{}_nfa", data.name));
 
             let dfa = Dfa::try_from(multi_pattern_nfa).unwrap();
             dfa_render_to!(&dfa, &format!("{}_dfa", data.name));

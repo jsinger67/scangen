@@ -9,19 +9,19 @@ use crate::{dfa::Dfa, multi_pattern_nfa::MultiPatternNfa, nfa::Nfa, SinglePatter
 
 /// A macro that simplifies the rendering of a dot file for a NFA.
 #[macro_export]
-macro_rules! render_to {
+macro_rules! nfa_render_to {
     ($nfa:expr, $label:expr) => {
         let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        render_to($nfa, $label, &mut f);
+        nfa_render_to($nfa, $label, &mut f);
     };
 }
 
 /// A macro that simplifies the rendering of a dot file for a multi-pattern NFA.
 #[macro_export]
-macro_rules! multi_render_to {
+macro_rules! multi_nfa_render_to {
     ($nfa:expr, $label:expr) => {
         let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        multi_render_to($nfa, $label, &mut f);
+        multi_nfa_render_to($nfa, $label, &mut f);
     };
 }
 
@@ -36,15 +36,15 @@ macro_rules! dfa_render_to {
 
 /// A macro that simplifies the rendering of a dot file for a single-pattern DFA.
 #[macro_export]
-macro_rules! render_single_dfa_to {
+macro_rules! single_dfa_render_to {
     ($nfa:expr, $label:expr) => {
         let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        render_single_dfa_to($nfa, $label, &mut f);
+        single_dfa_render_to($nfa, $label, &mut f);
     };
 }
 
 /// Render the NFA to a graphviz dot format.
-pub fn render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
+pub fn nfa_render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();
@@ -93,7 +93,7 @@ pub fn render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
 }
 
 /// Render the multi-pattern NFA to a graphviz dot format.
-pub fn multi_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mut W) {
+pub fn multi_nfa_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();
@@ -212,7 +212,7 @@ pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
 }
 
 /// Render a single-pattern DFA to a graphviz dot format.
-pub fn render_single_dfa_to<W: Write>(dfa: &SinglePatternDfa, label: &str, output: &mut W) {
+pub fn single_dfa_render_to<W: Write>(dfa: &SinglePatternDfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();
