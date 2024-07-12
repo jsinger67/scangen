@@ -52,3 +52,6 @@ mod dfa;
 
 /// Module that provides types related to compiled DFAs
 mod compiled_dfa;
+
+// Reexport the `regex_automata` crate
+pub use regex_automata;

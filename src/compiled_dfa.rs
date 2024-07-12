@@ -74,6 +74,7 @@ impl CompiledDfa {
     pub(crate) fn advance(&mut self, c_pos: usize, c: char) {
         // Get the transitions for the current state
         if let Some(transitions) = self.dfa.transitions().get(&self.current_state) {
+            trace!("Current state: {}", self.current_state.as_usize());
             if let Some(next_state) = Self::find_transition(transitions, &self.match_functions, c) {
                 if self.dfa.accepting_states().contains_key(&next_state) {
                     self.matching_state.transition_to_accepting(c_pos, c);
@@ -144,7 +145,7 @@ impl CompiledDfa {
         for (char_class, target_state) in transitions {
             if match_functions[char_class.id()].call(c) {
                 trace!(
-                    "Transition: '{}' Id{} {:?} -> {:?}",
+                    "Transition: '{}'({}) {:?} -> {}",
                     c,
                     char_class.id,
                     char_class.ast.0.to_string(),
@@ -159,6 +160,12 @@ impl CompiledDfa {
     /// Returns true if the search should continue on the next character.
     pub(crate) fn search_on(&self) -> bool {
         !self.matching_state.is_longest_match()
+    }
+}
+
+impl std::fmt::Debug for CompiledDfa {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "CompiledDfa {{ dfa: {:?} }}", self.dfa)
     }
 }
 

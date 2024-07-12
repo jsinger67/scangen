@@ -87,6 +87,54 @@ impl MultiPatternDfa {
         Ok(())
     }
 
+    /// We evaluate the matches of the DFAs in ascending order to prioritize the matches with the
+    /// lowest pattern id.
+    /// We find the pattern with the lowest start position and the longest length.
+    fn find_first_longest_match(&mut self) -> Option<Match> {
+        let mut current_match: Option<Match> = None;
+        for (pattern, dfa) in self.dfas.iter().enumerate() {
+            if let Some(span) = dfa.current_match() {
+                if current_match.is_none()
+                    || span.start < current_match.unwrap().start()
+                    || span.start == current_match.unwrap().start()
+                        && span.len() > current_match.unwrap().span().len()
+                {
+                    // We have a match and we continue the look for a longer match.
+                    trace!("First longest match is now #{}: {:?}", pattern, span);
+                    current_match = Some(Match::new(PatternID::new_unchecked(pattern), span));
+                }
+            }
+        }
+        current_match
+    }
+
+    /// Executes a leftmost search and returns the first match that is found, if one exists.
+    /// It starts the search at the position of the given CharIndices iterator.
+    /// During the search, all DFAs are advanced in parallel by one character at a time.
+    pub fn find_from(&mut self, char_indices: std::str::CharIndices) -> Option<Match> {
+        for dfa in self.dfas.iter_mut() {
+            dfa.reset();
+        }
+
+        trace!(
+            "Starting search from position {:?}",
+            char_indices.clone().next().unwrap_or((0, ' '))
+        );
+
+        for (i, c) in char_indices {
+            for dfa in self.dfas.iter_mut() {
+                dfa.advance(i, c);
+            }
+
+            if !self.dfas.iter().any(|dfa| dfa.search_on()) {
+                // No DFA is still searching, so we can stop the search.
+                break;
+            }
+        }
+
+        self.find_first_longest_match()
+    }
+
     /// Executes a leftmost search and returns the first match that is found, if one exists.
     /// During the search, all DFAs are advanced in parallel by one character at a time.
     pub fn find(&mut self, input: &str) -> Option<Match> {
@@ -111,24 +159,67 @@ impl MultiPatternDfa {
             }
         }
 
-        // We evaluate the matches of the DFAs in ascending order to prioritize the matches with the
-        // lowest pattern id.
-        // We find the pattern with the lowest start position and the longest length.
-        let mut current_match: Option<Match> = None;
-        for (pattern, dfa) in self.dfas.iter().enumerate() {
-            if let Some(span) = dfa.current_match() {
-                if current_match.is_none()
-                    || span.start < current_match.unwrap().start()
-                    || span.start == current_match.unwrap().start()
-                        && span.len() > current_match.unwrap().span().len()
-                {
-                    // We have a match and we continue the look for a longer match.
-                    trace!("Matched pattern #{}: {:?}", pattern, span);
-                    current_match = Some(Match::new(PatternID::new_unchecked(pattern), span));
-                }
-            }
+        self.find_first_longest_match()
+    }
+
+    /// Returns an iterator over all non-overlapping matches.
+    /// The iterator yields a [`Match`] value until no more matches could be found.
+    pub fn find_iter<'r, 'h>(&'r mut self, input: &'h str) -> FindMatches<'r, 'h> {
+        FindMatches::new(self, input)
+    }
+}
+
+impl std::fmt::Debug for MultiPatternDfa {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MultiPatternDfa {{ dfas: {:?} }}", self.dfas)
+    }
+}
+
+/// An iterator over all non-overlapping matches.
+///
+/// The iterator yields a [`Match`] value until no more matches could be found.
+///
+/// The lifetime parameters are as follows:
+///
+/// * `'r` represents the lifetime of the `Regex` that produced this iterator.
+/// * `'h` represents the lifetime of the haystack being searched.
+///
+/// This iterator can be created with the [`MultiPatternDfa::find_iter`] method.
+#[derive(Debug)]
+pub struct FindMatches<'r, 'h> {
+    multi_pattern_dfa: &'r mut MultiPatternDfa,
+    char_indices: std::str::CharIndices<'h>,
+}
+
+impl<'r, 'h> FindMatches<'r, 'h> {
+    /// Creates a new `FindMatches` iterator.
+    pub fn new(multi_pattern_dfa: &'r mut MultiPatternDfa, input: &'h str) -> Self {
+        FindMatches {
+            multi_pattern_dfa,
+            char_indices: input.char_indices(),
         }
-        current_match
+    }
+
+    /// Returns the next match in the haystack.
+    ///
+    /// If no match is found, `None` is returned.
+    pub fn next(&mut self) -> Option<Match> {
+        let result = self.multi_pattern_dfa.find_from(self.char_indices.clone());
+        if let Some(matched) = result {
+            // Advance the char_indices iterator to the end of the match.
+            let end = matched.span().end - 1;
+            let mut peekable = self.char_indices.by_ref().peekable();
+            while peekable.next_if(|(i, _)| *i < end).is_some() {}
+        }
+        result
+    }
+}
+
+impl Iterator for FindMatches<'_, '_> {
+    type Item = Match;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next()
     }
 }
 
@@ -184,7 +275,7 @@ mod tests {
     ];
 
     // A data type that provides test data for string search tests.
-    struct TestData {
+    struct TestDataFind {
         name: &'static str,
         patterns: &'static [&'static str],
         input: &'static str,
@@ -192,67 +283,161 @@ mod tests {
     }
 
     // Test data for string search tests.
-    const TEST_DATA: &[TestData] = &[
-        TestData {
+    const TEST_DATA_FIND: &[TestDataFind] = &[
+        TestDataFind {
             name: "in_int_with_input_int",
             patterns: &["in", "int"],
             input: "int",
             match_result: Some((PatternID::new_unchecked(1), Span { start: 0, end: 3 })),
         },
-        TestData {
+        TestDataFind {
             name: "in_int_with_input_in",
             patterns: &["in", "int"],
             input: "in",
             match_result: Some((PatternID::new_unchecked(0), Span { start: 0, end: 2 })),
         },
-        TestData {
+        TestDataFind {
             name: "in_int_with_input_in_padded_with_whitespace",
             patterns: &["in", "int"],
             input: "  in  ",
             match_result: Some((PatternID::new_unchecked(0), Span { start: 2, end: 4 })),
         },
-        TestData {
+        TestDataFind {
             name: "in_int_with_input_int_padded_with_whitespace",
             patterns: &["in", "int"],
             input: "  int  ",
             match_result: Some((PatternID::new_unchecked(1), Span { start: 2, end: 5 })),
         },
-        TestData {
+        TestDataFind {
             name: "in_int_with_input_int_padded_with_whitespace_and_newline",
             patterns: &["in", "int"],
             input: "  int  \n",
             match_result: Some((PatternID::new_unchecked(1), Span { start: 2, end: 5 })),
         },
-        TestData {
+        TestDataFind {
             name: "in_int_with_input_int_int",
             patterns: &["in", "int"],
             input: "  int  int ",
             match_result: Some((PatternID::new_unchecked(1), Span { start: 2, end: 5 })),
         },
-        TestData {
+        TestDataFind {
             name: "parol_with_input_space_percent_sc",
             patterns: PATTERNS,
             input: " %sc %scanner ",
             match_result: Some((PatternID::new_unchecked(1), Span { start: 0, end: 1 })),
         },
-        TestData {
+        TestDataFind {
             name: "parol_with_input_percent_sc",
             patterns: PATTERNS,
             input: "%sc %scanner ",
             match_result: Some((PatternID::new_unchecked(35), Span { start: 0, end: 3 })),
         },
-        TestData {
+        TestDataFind {
             name: "parol_with_input_percent_scan",
             patterns: PATTERNS,
             input: "%scan",
             // The pattern %sc is matched first, so the match is %sc.
             match_result: Some((PatternID::new_unchecked(35), Span { start: 0, end: 3 })),
         },
-        TestData {
+        TestDataFind {
             name: "parol_with_input_percent_scanner",
             patterns: PATTERNS,
             input: "%scanner ",
             match_result: Some((PatternID::new_unchecked(33), Span { start: 0, end: 8 })),
+        },
+    ];
+
+    // A data type that provides test data for search iterator tests.
+    struct TestDataFindIter {
+        name: &'static str,
+        patterns: &'static [&'static str],
+        input: &'static str,
+        match_result: &'static [(PatternID, Span)],
+    }
+
+    // Test data for search iterator tests.
+    const TEST_DATA_FIND_ITER: &[TestDataFindIter] = &[
+        TestDataFindIter {
+            name: "in_int_with_input_int",
+            patterns: &["in", "int"],
+            input: "int",
+            match_result: &[(PatternID::new_unchecked(1), Span { start: 0, end: 3 })],
+        },
+        TestDataFindIter {
+            name: "in_int_with_input_in",
+            patterns: &["in", "int"],
+            input: "in",
+            match_result: &[(PatternID::new_unchecked(0), Span { start: 0, end: 2 })],
+        },
+        TestDataFindIter {
+            name: "in_int_with_input_in_padded_with_whitespace",
+            patterns: &["in", "int"],
+            input: "  in  ",
+            match_result: &[(PatternID::new_unchecked(0), Span { start: 2, end: 4 })],
+        },
+        TestDataFindIter {
+            name: "in_int_with_input_int_padded_with_whitespace",
+            patterns: &["in", "int"],
+            input: "  int  ",
+            match_result: &[(PatternID::new_unchecked(1), Span { start: 2, end: 5 })],
+        },
+        TestDataFindIter {
+            name: "in_int_with_input_int_padded_with_whitespace_and_newline",
+            patterns: &["in", "int"],
+            input: "  int  \n",
+            match_result: &[(PatternID::new_unchecked(1), Span { start: 2, end: 5 })],
+        },
+        TestDataFindIter {
+            name: "in_int_with_input_int_int",
+            patterns: &["in", "int"],
+            input: "  int  int ",
+            match_result: &[
+                (PatternID::new_unchecked(1), Span { start: 2, end: 5 }),
+                (PatternID::new_unchecked(1), Span { start: 7, end: 10 }),
+            ],
+        },
+        TestDataFindIter {
+            name: "parol_with_input_space_percent_sc",
+            patterns: PATTERNS,
+            input: " %sc %scanner ",
+            match_result: &[
+                (PatternID::new_unchecked(1), Span { start: 0, end: 1 }), // whitespace
+                (PatternID::new_unchecked(35), Span { start: 1, end: 4 }), // %sc
+                (PatternID::new_unchecked(1), Span { start: 4, end: 5 }), // whitespace
+                (PatternID::new_unchecked(33), Span { start: 5, end: 13 }), // %scanner
+                (PatternID::new_unchecked(1), Span { start: 13, end: 14 }), // whitespace
+            ],
+        },
+        TestDataFindIter {
+            name: "parol_with_input_percent_sc_space_percent_scanner",
+            patterns: PATTERNS,
+            input: "%sc %scanner ",
+            match_result: &[
+                (PatternID::new_unchecked(35), Span { start: 0, end: 3 }), // %sc
+                (PatternID::new_unchecked(1), Span { start: 3, end: 4 }),  // whitespace
+                (PatternID::new_unchecked(33), Span { start: 4, end: 12 }), // %scanner
+                (PatternID::new_unchecked(1), Span { start: 12, end: 13 }), // whitespace
+            ],
+        },
+        TestDataFindIter {
+            name: "parol_with_input_percent_scan",
+            patterns: PATTERNS,
+            input: "%scan",
+            // The pattern %sc is matched first, so the match is %sc.
+            // The remaining input is "an", which matches the identifier pattern (32).
+            match_result: &[
+                (PatternID::new_unchecked(35), Span { start: 0, end: 3 }),
+                (PatternID::new_unchecked(32), Span { start: 3, end: 5 }),
+            ],
+        },
+        TestDataFindIter {
+            name: "parol_with_input_percent_scanner",
+            patterns: PATTERNS,
+            input: "%scanner ",
+            match_result: &[
+                (PatternID::new_unchecked(33), Span { start: 0, end: 8 }),
+                (PatternID::new_unchecked(1), Span { start: 8, end: 9 }),
+            ],
         },
     ];
 
@@ -265,13 +450,27 @@ mod tests {
     fn test_multi_dfa_find() {
         init();
 
-        for data in TEST_DATA {
-            let mut multi_pattern_nfa = MultiPatternDfa::new();
-            multi_pattern_nfa.add_patterns(data.patterns).unwrap();
-            let match_result = multi_pattern_nfa
+        for data in TEST_DATA_FIND {
+            let mut multi_pattern_dfa = MultiPatternDfa::new();
+            multi_pattern_dfa.add_patterns(data.patterns).unwrap();
+            let match_result = multi_pattern_dfa
                 .find(data.input)
                 .map(|ma| (ma.pattern(), ma.span()));
             assert_eq!(match_result, data.match_result, "{}", data.name);
+        }
+    }
+
+    #[test]
+    fn test_multi_dfa_find_iter() {
+        init();
+
+        for data in TEST_DATA_FIND_ITER {
+            let mut multi_pattern_dfa = MultiPatternDfa::new();
+            multi_pattern_dfa.add_patterns(data.patterns).unwrap();
+            let find_iter = multi_pattern_dfa.find_iter(data.input);
+            let match_result: Vec<(PatternID, Span)> =
+                find_iter.map(|ma| (ma.pattern(), ma.span())).collect();
+            assert_eq!(match_result.as_slice(), data.match_result, "{}", data.name);
         }
     }
 }
