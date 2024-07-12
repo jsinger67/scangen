@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use log::trace;
 use regex_automata::{util::primitives::StateID, Match, Span};
 
 use crate::{character_class::CharacterClass, dfa::Dfa, match_function::MatchFunction, Result};
@@ -74,7 +73,7 @@ impl CompiledDfa {
     pub(crate) fn advance(&mut self, c_pos: usize, c: char) {
         // Get the transitions for the current state
         if let Some(transitions) = self.dfa.transitions().get(&self.current_state) {
-            trace!("Current state: {}", self.current_state.as_usize());
+            // trace!("Current state: {}", self.current_state.as_usize());
             if let Some(next_state) = Self::find_transition(transitions, &self.match_functions, c) {
                 if self.dfa.accepting_states().contains_key(&next_state) {
                     self.matching_state.transition_to_accepting(c_pos, c);
@@ -144,13 +143,13 @@ impl CompiledDfa {
     ) -> Option<StateID> {
         for (char_class, target_state) in transitions {
             if match_functions[char_class.id()].call(c) {
-                trace!(
-                    "Transition: '{}'({}) {:?} -> {}",
-                    c,
-                    char_class.id,
-                    char_class.ast.0.to_string(),
-                    target_state.as_usize()
-                );
+                // trace!(
+                //     "Transition: '{}'({}) {:?} -> {}",
+                //     c,
+                //     char_class.id,
+                //     char_class.ast.0.to_string(),
+                //     target_state.as_usize()
+                // );
                 return Some(*target_state);
             }
         }

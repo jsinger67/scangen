@@ -1,4 +1,3 @@
-use log::trace;
 use regex_automata::{Match, PatternID};
 
 use crate::{
@@ -100,7 +99,7 @@ impl MultiPatternDfa {
                         && span.len() > current_match.unwrap().span().len()
                 {
                     // We have a match and we continue the look for a longer match.
-                    trace!("First longest match is now #{}: {:?}", pattern, span);
+                    // trace!("First longest match is now #{}: {:?}", pattern, span);
                     current_match = Some(Match::new(PatternID::new_unchecked(pattern), span));
                 }
             }
@@ -116,10 +115,10 @@ impl MultiPatternDfa {
             dfa.reset();
         }
 
-        trace!(
-            "Starting search from position {:?}",
-            char_indices.clone().next().unwrap_or((0, ' '))
-        );
+        // trace!(
+        //     "Starting search from position {:?}",
+        //     char_indices.clone().next().unwrap_or((0, ' '))
+        // );
 
         for (i, c) in char_indices {
             for dfa in self.dfas.iter_mut() {
@@ -144,13 +143,13 @@ impl MultiPatternDfa {
 
         let chars = input.char_indices();
         for (i, c) in chars {
-            for (pattern_index, dfa) in self.dfas.iter_mut().enumerate() {
+            for dfa in self.dfas.iter_mut() {
                 dfa.advance(i, c);
-                trace!(
-                    "DFA for pattern #{} is in {:?}",
-                    pattern_index,
-                    dfa.matching_state().inner_state()
-                );
+                // trace!(
+                //     "DFA for pattern #{} is in {:?}",
+                //     pattern_index,
+                //     dfa.matching_state().inner_state()
+                // );
             }
 
             if !self.dfas.iter().any(|dfa| dfa.search_on()) {

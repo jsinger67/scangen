@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use log::trace;
 use regex_automata::{util::primitives::StateID, PatternID};
 
 use crate::{
@@ -183,13 +182,13 @@ impl NfaWithCharClasses {
                     .iter()
                     .position(|c| c.ast == ComparableAst(transition.chars().clone()))
                 {
-                    trace!("Found existing char class: {}", transition.chars());
+                    // trace!("Found existing char class: {}", transition.chars());
                     new_state.transitions.push(MultiNfaTransition {
                         chars: CharClassID::new(class_id),
                         target_state: transition.target_state(),
                     });
                 } else {
-                    trace!("Adding new char class: {}", transition.chars());
+                    // trace!("Adding new char class: {}", transition.chars());
                     let chars = CharClassID::new(char_classes.len());
                     char_classes.push(CharacterClass::new(chars, transition.chars().clone()));
                     new_state.transitions.push(MultiNfaTransition {
