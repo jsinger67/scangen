@@ -275,7 +275,7 @@ impl Dfa {
             .clone()
             .into_iter()
             .chunk_by(|state| {
-                if let Some(pattern_id) = self.accepting_states.get(&state.id) {
+                if let Some(pattern_id) = self.pattern_id(state.id) {
                     StateID::new_unchecked(pattern_id.as_usize())
                 } else {
                     group_id_non_accepting_states

@@ -54,6 +54,10 @@ impl CompiledDfa {
         Ok(())
     }
 
+    pub(crate) fn matching_state(&self) -> &MatchingState {
+        &self.matching_state
+    }
+
     pub(crate) fn reset(&mut self) {
         self.current_state = StateID::new_unchecked(0);
         self.matching_state = MatchingState::new();
@@ -140,7 +144,7 @@ impl CompiledDfa {
         for (char_class, target_state) in transitions {
             if match_functions[char_class.id()].call(c) {
                 trace!(
-                    "Transition: {} {} {:?} -> {:?}",
+                    "Transition: '{}' Id{} {:?} -> {:?}",
                     c,
                     char_class.id,
                     char_class.ast.0.to_string(),
@@ -150,6 +154,11 @@ impl CompiledDfa {
             }
         }
         None
+    }
+
+    /// Returns true if the search should continue on the next character.
+    pub(crate) fn search_on(&self) -> bool {
+        !self.matching_state.is_longest_match()
     }
 }
 
@@ -216,7 +225,7 @@ impl MatchingState {
         match self.state {
             InnerMatchingState::None => {
                 *self = MatchingState {
-                    state: InnerMatchingState::Start,
+                    state: InnerMatchingState::Accepting,
                     start_position: Some(i),
                     end_position: Some(i + c.len_utf8()),
                 }
@@ -263,11 +272,15 @@ impl MatchingState {
             None
         }
     }
+
+    pub(crate) fn inner_state(&self) -> InnerMatchingState {
+        self.state
+    }
 }
 
 /// The state enumeration of the DFA during matching.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-enum InnerMatchingState {
+pub(crate) enum InnerMatchingState {
     /// No match recorded so far.
     /// Continue search on the next character.
     ///
@@ -316,50 +329,6 @@ mod tests {
 
     use super::*;
 
-    // Pattern taken from parol
-    const PATTERNS: &[&str] = &[
-        /* 0 */ "\\r\\n|\\r|\\n",
-        /* 1 */ "[\\s--\\r\\n]+",
-        /* 2 */ "(//.*(\\r\\n|\\r|\\n))",
-        /* 3 */ "(/\\*.*?\\*/)",
-        /* 4 */ "%start",
-        /* 5 */ "%title",
-        /* 6 */ "%comment",
-        /* 7 */ "%user_type",
-        /* 8 */ "=",
-        /* 9 */ "%grammar_type",
-        /* 10 */ "%line_comment",
-        /* 11 */ "%block_comment",
-        /* 12 */ "%auto_newline_off",
-        /* 13 */ "%auto_ws_off",
-        /* 14 */ "%on",
-        /* 15 */ "%enter",
-        /* 16 */ "%%",
-        /* 17 */ "::",
-        /* 18 */ ":",
-        /* 19 */ ";",
-        /* 20 */ "\\|",
-        /* 21 */ "<",
-        /* 22 */ ">",
-        /* 23 */ "\"(\\\\.|[^\\\\])*?\"",
-        /* 24 */ "'(\\\\'|[^'])*?'",
-        /* 25 */ "\\u{2F}(\\\\.|[^\\\\])*?\\u{2F}",
-        /* 26 */ "\\(",
-        /* 27 */ "\\)",
-        /* 28 */ "\\[",
-        /* 29 */ "\\]",
-        /* 30 */ "\\{",
-        /* 31 */ "\\}",
-        /* 32 */ "[a-zA-Z_][a-zA-Z0-9_]*",
-        /* 33 */ "%scanner",
-        /* 34 */ ",",
-        /* 35 */ "%sc",
-        /* 36 */ "%push",
-        /* 37 */ "%pop",
-        /* 38 */ "\\^",
-        /* 39 */ ".",
-    ];
-
     // A data type that provides test data for string search tests.
     struct TestData {
         name: &'static str,
@@ -406,12 +375,6 @@ mod tests {
             input: "  int  int ",
             match_result: Some((PatternID::new_unchecked(1), Span { start: 2, end: 5 })),
         },
-        // TestData {
-        //     name: "parol_with_input_percent_sc",
-        //     patterns: PATTERNS,
-        //     input: "%sc %scanner ",
-        //     match_result: Some((PatternID::new_unchecked(35), Span { start: 2, end: 5 })),
-        // },
     ];
 
     // Initialize the logger for the tests
