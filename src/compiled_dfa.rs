@@ -95,6 +95,10 @@ impl CompiledDfa {
     }
 
     pub(crate) fn advance(&mut self, c_pos: usize, c: char) {
+        // If we already have the longest match, we can stop
+        if self.matching_state.is_longest_match() {
+            return;
+        }
         // Get the transitions for the current state
         if let Some(next_state) = self.find_transition(c) {
             if self.accepting_states.contains(&next_state) {
@@ -110,7 +114,7 @@ impl CompiledDfa {
 
     #[inline]
     fn find_transition(&self, c: char) -> Option<StateID> {
-        let (start, end) = self.state_ranges[self.current_state];
+        let (start, end) = self.state_ranges[self.current_state.as_usize()];
         let transitions = &self.transitions[start..end];
         for (_, (char_class, target_state)) in transitions {
             if self.match_functions[char_class.as_usize()].call(c) {
@@ -229,18 +233,22 @@ impl MatchingState {
         }
     }
 
+    #[inline]
     pub(crate) fn is_no_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::None)
     }
 
+    #[inline]
     pub(crate) fn is_start_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::Start)
     }
 
+    #[inline]
     pub(crate) fn is_accepting_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::Accepting)
     }
 
+    #[inline]
     pub(crate) fn is_longest_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::Longest)
     }

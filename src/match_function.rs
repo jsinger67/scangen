@@ -21,6 +21,7 @@ impl MatchFunction {
     }
 
     /// Call the match function with a character.
+    #[inline]
     pub(crate) fn call(&self, c: char) -> bool {
         (self.0)(c)
     }
