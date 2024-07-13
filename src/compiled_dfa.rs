@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 
 use regex_automata::{util::primitives::StateID, Span};
+use regex_syntax::ast::Ast;
 
-use crate::{character_class::CharClassID, dfa::Dfa, match_function::MatchFunction, Result};
+use crate::{
+    character_class::CharClassID, dfa::Dfa, match_function::MatchFunction, Result, ScanGenError,
+};
 
 /// A compiled DFA that can be used to match a string.
 ///
@@ -23,8 +26,6 @@ pub struct CompiledDfa {
     state_ranges: Vec<(usize, usize)>,
     /// The transitions of the DFA.
     transitions: Vec<(StateID, (CharClassID, StateID))>,
-    /// The match functions for the DFA
-    match_functions: Vec<MatchFunction>,
     /// The current state of the DFA during matching
     current_state: StateID,
     /// The state of matching
@@ -40,23 +41,14 @@ impl CompiledDfa {
         &self.pattern
     }
 
-    pub(crate) fn match_functions(&self) -> &[MatchFunction] {
-        &self.match_functions
-    }
-
-    pub(crate) fn compile(&mut self, dfa: &Dfa) -> Result<()> {
+    pub(crate) fn compile(
+        &mut self,
+        dfa: &Dfa,
+        match_functions: &mut Vec<(Ast, MatchFunction)>,
+    ) -> Result<()> {
         // Set the pattern
         debug_assert_eq!(dfa.patterns().len(), 1);
         self.pattern = dfa.patterns()[0].to_string();
-        // Create the match functions for all character classes
-        self.match_functions.clear();
-        dfa.char_classes()
-            .iter()
-            .try_for_each(|char_class| -> Result<()> {
-                let match_function = char_class.ast.0.clone().try_into()?;
-                self.match_functions.push(match_function);
-                Ok(())
-            })?;
         // Create the transitions vector as well as the state_ranges vector
         self.transitions.clear();
         self.state_ranges.clear();
@@ -66,10 +58,25 @@ impl CompiledDfa {
         for (state, state_transitions) in dfa.transitions() {
             let start = self.transitions.len();
             self.state_ranges[*state] = (start, start + state_transitions.len());
-            let mut transitions_for_state = state_transitions
-                .iter()
-                .map(|(char_class, target_state)| (*state, (char_class.id(), *target_state)))
-                .collect::<Vec<_>>();
+            let mut transitions_for_state = state_transitions.iter().try_fold(
+                Vec::new(),
+                |mut acc, (char_class, target_state)| {
+                    // Create the match function for the character class if it does not exist
+                    if let Some(pos) = match_functions
+                        .iter()
+                        .position(|(ast, _)| *ast == char_class.ast.0)
+                    {
+                        acc.push((*state, (pos.into(), *target_state)));
+                        Ok::<Vec<(StateID, (CharClassID, StateID))>, ScanGenError>(acc)
+                    } else {
+                        let match_function: MatchFunction = char_class.ast().clone().try_into()?;
+                        let new_char_class_id = CharClassID::new(match_functions.len());
+                        match_functions.push((char_class.ast().clone(), match_function));
+                        acc.push((*state, (new_char_class_id, *target_state)));
+                        Ok(acc)
+                    }
+                },
+            )?;
             self.transitions.append(&mut transitions_for_state);
         }
         // Create the accepting states vector
@@ -94,13 +101,18 @@ impl CompiledDfa {
         self.matching_state.last_match()
     }
 
-    pub(crate) fn advance(&mut self, c_pos: usize, c: char) {
+    pub(crate) fn advance(
+        &mut self,
+        c_pos: usize,
+        c: char,
+        match_functions: &[(Ast, MatchFunction)],
+    ) {
         // If we already have the longest match, we can stop
         if self.matching_state.is_longest_match() {
             return;
         }
         // Get the transitions for the current state
-        if let Some(next_state) = self.find_transition(c) {
+        if let Some(next_state) = self.find_transition(c, match_functions) {
             if self.accepting_states.contains(&next_state) {
                 self.matching_state.transition_to_accepting(c_pos, c);
             } else {
@@ -113,11 +125,15 @@ impl CompiledDfa {
     }
 
     #[inline]
-    fn find_transition(&self, c: char) -> Option<StateID> {
+    fn find_transition(
+        &self,
+        c: char,
+        match_functions: &[(Ast, MatchFunction)],
+    ) -> Option<StateID> {
         let (start, end) = self.state_ranges[self.current_state.as_usize()];
         let transitions = &self.transitions[start..end];
         for (_, (char_class, target_state)) in transitions {
-            if self.match_functions[char_class.as_usize()].call(c) {
+            if match_functions[char_class.as_usize()].1.call(c) {
                 return Some(*target_state);
             }
         }
@@ -136,7 +152,6 @@ impl std::fmt::Debug for CompiledDfa {
             .field("accepting_states", &self.accepting_states)
             .field("state_ranges", &self.state_ranges)
             .field("transitions", &self.transitions)
-            .field("match_functions", &self.match_functions)
             .field("current_state", &self.current_state)
             .field("matching_state", &self.matching_state)
             .finish()

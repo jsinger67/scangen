@@ -1,8 +1,9 @@
 use regex_automata::{Match, PatternID};
+use regex_syntax::ast::Ast;
 
 use crate::{
-    compiled_dfa::CompiledDfa, dfa::Dfa, multi_pattern_nfa::MultiPatternNfa, unsupported, Result,
-    ScanGenError, ScanGenErrorKind,
+    compiled_dfa::CompiledDfa, dfa::Dfa, match_function::MatchFunction,
+    multi_pattern_nfa::MultiPatternNfa, unsupported, Result, ScanGenError, ScanGenErrorKind,
 };
 
 /// The `MultiPatternDfa` struct represents a multi-pattern DFA.
@@ -11,6 +12,8 @@ use crate::{
 pub struct MultiPatternDfa {
     /// The DFAs that are used to match the patterns. Each DFA is used to match a single pattern.
     dfas: Vec<CompiledDfa>,
+    /// The match functions shared by all DFAs.
+    match_functions: Vec<(Ast, MatchFunction)>,
 }
 
 impl MultiPatternDfa {
@@ -48,7 +51,7 @@ impl MultiPatternDfa {
 
         // Compile the minimized DFA.
         let mut compiled_dfa = CompiledDfa::new();
-        compiled_dfa.compile(&minimzed_dfa)?;
+        compiled_dfa.compile(&minimzed_dfa, &mut self.match_functions)?;
 
         // Add the compiled DFA to the list of DFAs.
         self.dfas.push(compiled_dfa);
@@ -112,7 +115,7 @@ impl MultiPatternDfa {
 
         for (i, c) in char_indices {
             for dfa in self.dfas.iter_mut() {
-                dfa.advance(i, c);
+                dfa.advance(i, c, &self.match_functions);
             }
 
             if !self.dfas.iter().any(|dfa| dfa.search_on()) {
@@ -134,7 +137,7 @@ impl MultiPatternDfa {
         let chars = input.char_indices();
         for (i, c) in chars {
             for dfa in self.dfas.iter_mut() {
-                dfa.advance(i, c);
+                dfa.advance(i, c, &self.match_functions);
             }
 
             if !self.dfas.iter().any(|dfa| dfa.search_on()) {
