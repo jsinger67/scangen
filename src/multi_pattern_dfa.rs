@@ -33,11 +33,7 @@ impl MultiPatternDfa {
     where
         S: AsRef<str>,
     {
-        if self
-            .dfas
-            .iter()
-            .any(|d| d.dfa().patterns()[0] == pattern.as_ref())
-        {
+        if self.dfas.iter().any(|d| d.pattern() == pattern.as_ref()) {
             // If the pattern already exists, do nothing.
             // Not sure if this should rather be an error.
             return Ok(());
@@ -51,8 +47,8 @@ impl MultiPatternDfa {
         let minimzed_dfa = dfa.minimize()?;
 
         // Compile the minimized DFA.
-        let mut compiled_dfa = CompiledDfa::new(minimzed_dfa);
-        compiled_dfa.compile()?;
+        let mut compiled_dfa = CompiledDfa::new();
+        compiled_dfa.compile(&minimzed_dfa)?;
 
         // Add the compiled DFA to the list of DFAs.
         self.dfas.push(compiled_dfa);

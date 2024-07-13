@@ -1,7 +1,6 @@
 use itertools::Itertools;
 use std::collections::{BTreeMap, BTreeSet};
 
-use log::trace;
 use regex_automata::util::primitives::StateID;
 
 use crate::{

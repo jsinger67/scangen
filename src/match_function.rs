@@ -176,6 +176,12 @@ impl MatchFunction {
     }
 }
 
+impl std::fmt::Debug for MatchFunction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MatchFunction")
+    }
+}
+
 impl TryFrom<Ast> for MatchFunction {
     type Error = ScanGenError;
 

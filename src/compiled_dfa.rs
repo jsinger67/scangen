@@ -1,55 +1,79 @@
 #![allow(dead_code)]
 
-use regex_automata::{util::primitives::StateID, Match, Span};
+use regex_automata::{util::primitives::StateID, Span};
 
-use crate::{character_class::CharacterClass, dfa::Dfa, match_function::MatchFunction, Result};
+use crate::{character_class::CharClassID, dfa::Dfa, match_function::MatchFunction, Result};
 
 /// A compiled DFA that can be used to match a string.
 ///
 /// The DFA is compiled from a DFA by creating match functions for all character classes.
 /// The match functions are used to decide if a character is in a character class.
+/// Furthermore, the compile creates optimized data structures for the DFA to speed up matching.
 ///
 /// MatchFunctions are not Clone nor Copy, so we aggregate them into a new struct CompiledDfa
 /// which is Clone and Copy neither.
+#[derive(Default)]
 pub struct CompiledDfa {
-    // The base DFA
-    dfa: Dfa,
-    // The match functions for the DFA
+    /// The pattern matched by the DFA.
+    pattern: String,
+    /// The accepting states of the DFA as well as the corresponding pattern id.
+    accepting_states: Vec<StateID>,
+    /// Each entry in the vector represents a state in the DFA. The entry is a tuple of first and
+    /// last index into the transitions vector.
+    state_ranges: Vec<(usize, usize)>,
+    /// The transitions of the DFA.
+    transitions: Vec<(StateID, (CharClassID, StateID))>,
+    /// The match functions for the DFA
     match_functions: Vec<MatchFunction>,
-    // The current state of the DFA during matching
+    /// The current state of the DFA during matching
     current_state: StateID,
-    // The state of matching
+    /// The state of matching
     matching_state: MatchingState,
 }
 
 impl CompiledDfa {
-    pub fn new(dfa: Dfa) -> Self {
-        CompiledDfa {
-            dfa,
-            match_functions: Vec::new(),
-            current_state: StateID::new_unchecked(0),
-            matching_state: MatchingState::new(),
-        }
+    pub fn new() -> Self {
+        CompiledDfa::default()
     }
 
-    pub(crate) fn dfa(&self) -> &Dfa {
-        &self.dfa
+    pub(crate) fn pattern(&self) -> &str {
+        &self.pattern
     }
 
     pub(crate) fn match_functions(&self) -> &[MatchFunction] {
         &self.match_functions
     }
 
-    pub(crate) fn compile(&mut self) -> Result<()> {
+    pub(crate) fn compile(&mut self, dfa: &Dfa) -> Result<()> {
+        // Set the pattern
+        debug_assert_eq!(dfa.patterns().len(), 1);
+        self.pattern = dfa.patterns()[0].to_string();
         // Create the match functions for all character classes
-        self.dfa
-            .char_classes()
+        self.match_functions.clear();
+        dfa.char_classes()
             .iter()
             .try_for_each(|char_class| -> Result<()> {
                 let match_function = char_class.ast.0.clone().try_into()?;
                 self.match_functions.push(match_function);
                 Ok(())
             })?;
+        // Create the transitions vector as well as the state_ranges vector
+        self.transitions.clear();
+        self.state_ranges.clear();
+        for _ in 0..dfa.states().len() {
+            self.state_ranges.push((0, 0));
+        }
+        for (state, state_transitions) in dfa.transitions() {
+            let start = self.transitions.len();
+            self.state_ranges[*state] = (start, start + state_transitions.len());
+            let mut transitions_for_state = state_transitions
+                .iter()
+                .map(|(char_class, target_state)| (*state, (char_class.id(), *target_state)))
+                .collect::<Vec<_>>();
+            self.transitions.append(&mut transitions_for_state);
+        }
+        // Create the accepting states vector
+        self.accepting_states = dfa.accepting_states().keys().cloned().collect();
         Ok(())
     }
 
@@ -72,76 +96,24 @@ impl CompiledDfa {
 
     pub(crate) fn advance(&mut self, c_pos: usize, c: char) {
         // Get the transitions for the current state
-        if let Some(transitions) = self.dfa.transitions().get(&self.current_state) {
-            if let Some(next_state) = Self::find_transition(transitions, &self.match_functions, c) {
-                if self.dfa.accepting_states().contains_key(&next_state) {
-                    self.matching_state.transition_to_accepting(c_pos, c);
-                } else {
-                    self.matching_state.transition_to_non_accepting(c_pos);
-                }
-                self.current_state = next_state;
+        if let Some(next_state) = self.find_transition(c) {
+            if self.accepting_states.contains(&next_state) {
+                self.matching_state.transition_to_accepting(c_pos, c);
             } else {
-                self.matching_state.no_transition();
+                self.matching_state.transition_to_non_accepting(c_pos);
             }
+            self.current_state = next_state;
         } else {
-            // Start search on the next character
             self.matching_state.no_transition();
         }
     }
 
-    /// Executes a leftmost search and returns the first match that is found, if one exists.
-    /// During the search, the current state and position are updated.
-    /// If a match is found, the start and end positions of the match are stored.
-    /// During search we can have several conditions:
-    /// 1. We have a match and we continue the search for a longer match.
-    /// 2. We have a start of a match but we can't match the next character, so we re-start the
-    /// search on the next character. Therefore we need to reset the start_position and end_position
-    /// to None
-    /// 3. We don't have a match and we continue the search. If we reach the end of the input string
-    /// we return None.
-    pub(crate) fn find(&mut self, input: &str) -> Option<Match> {
-        self.reset();
-        let chars = input.char_indices();
-        for (c_pos, c) in chars {
-            // Get the transitions for the current state
-            if let Some(transitions) = self.dfa.transitions().get(&self.current_state) {
-                if let Some(next_state) =
-                    Self::find_transition(transitions, &self.match_functions, c)
-                {
-                    if self.dfa.accepting_states().contains_key(&next_state) {
-                        self.matching_state.transition_to_accepting(c_pos, c);
-                    } else {
-                        self.matching_state.transition_to_non_accepting(c_pos);
-                    }
-                    self.current_state = next_state;
-                } else {
-                    self.matching_state.no_transition();
-                }
-            } else {
-                // Start search on the next character
-                self.matching_state.no_transition();
-                if self.matching_state.is_longest_match() {
-                    break;
-                }
-                continue;
-            }
-        }
-        if let Some(span) = self.matching_state.last_match() {
-            let pattern_id = self.dfa.accepting_states()[&self.current_state];
-            Some(Match::new(pattern_id, span))
-        } else {
-            None
-        }
-    }
-
     #[inline]
-    fn find_transition(
-        transitions: &std::collections::BTreeMap<CharacterClass, StateID>,
-        match_functions: &[MatchFunction],
-        c: char,
-    ) -> Option<StateID> {
-        for (char_class, target_state) in transitions {
-            if match_functions[char_class.id()].call(c) {
+    fn find_transition(&self, c: char) -> Option<StateID> {
+        let (start, end) = self.state_ranges[self.current_state];
+        let transitions = &self.transitions[start..end];
+        for (_, (char_class, target_state)) in transitions {
+            if self.match_functions[char_class.as_usize()].call(c) {
                 return Some(*target_state);
             }
         }
@@ -156,7 +128,14 @@ impl CompiledDfa {
 
 impl std::fmt::Debug for CompiledDfa {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "CompiledDfa {{ dfa: {:?} }}", self.dfa)
+        f.debug_struct("CompiledDfa")
+            .field("accepting_states", &self.accepting_states)
+            .field("state_ranges", &self.state_ranges)
+            .field("transitions", &self.transitions)
+            .field("match_functions", &self.match_functions)
+            .field("current_state", &self.current_state)
+            .field("matching_state", &self.matching_state)
+            .finish()
     }
 }
 
@@ -320,86 +299,4 @@ pub(crate) enum InnerMatchingState {
     ///
     /// This state can't be left.
     Longest,
-}
-
-#[cfg(test)]
-
-mod tests {
-    use regex_automata::PatternID;
-
-    use crate::{dfa_render_to, MultiPatternNfa};
-
-    use super::*;
-
-    // A data type that provides test data for string search tests.
-    struct TestData {
-        name: &'static str,
-        patterns: &'static [&'static str],
-        input: &'static str,
-        match_result: Option<(PatternID, Span)>,
-    }
-
-    // Test data for string search tests.
-    const TEST_DATA: &[TestData] = &[
-        TestData {
-            name: "in_int_with_input_int",
-            patterns: &["in", "int"],
-            input: "int",
-            match_result: Some((PatternID::new_unchecked(1), Span { start: 0, end: 3 })),
-        },
-        TestData {
-            name: "in_int_with_input_in",
-            patterns: &["in", "int"],
-            input: "in",
-            match_result: Some((PatternID::new_unchecked(0), Span { start: 0, end: 2 })),
-        },
-        TestData {
-            name: "in_int_with_input_in_padded_with_whitespace",
-            patterns: &["in", "int"],
-            input: "  in  ",
-            match_result: Some((PatternID::new_unchecked(0), Span { start: 2, end: 4 })),
-        },
-        TestData {
-            name: "in_int_with_input_int_padded_with_whitespace",
-            patterns: &["in", "int"],
-            input: "  int  ",
-            match_result: Some((PatternID::new_unchecked(1), Span { start: 2, end: 5 })),
-        },
-        TestData {
-            name: "in_int_with_input_int_padded_with_whitespace_and_newline",
-            patterns: &["in", "int"],
-            input: "  int  \n",
-            match_result: Some((PatternID::new_unchecked(1), Span { start: 2, end: 5 })),
-        },
-        TestData {
-            name: "in_int_with_input_int_int",
-            patterns: &["in", "int"],
-            input: "  int  int ",
-            match_result: Some((PatternID::new_unchecked(1), Span { start: 2, end: 5 })),
-        },
-    ];
-
-    // Initialize the logger for the tests
-    fn init() {
-        let _ = env_logger::builder().is_test(true).try_init();
-    }
-
-    #[test]
-    fn test_find() {
-        init();
-
-        for data in TEST_DATA {
-            let mut multi_pattern_nfa = MultiPatternNfa::new();
-            multi_pattern_nfa.add_patterns(data.patterns).unwrap();
-            let dfa = Dfa::try_from(multi_pattern_nfa).unwrap();
-            let minimized_dfa = dfa.minimize().unwrap();
-            dfa_render_to!(&minimized_dfa, &format!("{}_min_dfa", data.name));
-            let mut compiled_dfa = CompiledDfa::new(minimized_dfa);
-            compiled_dfa.compile().unwrap();
-            let match_result = compiled_dfa
-                .find(data.input)
-                .map(|ma| (ma.pattern(), ma.span()));
-            assert_eq!(match_result, data.match_result, "{}", data.name);
-        }
-    }
 }

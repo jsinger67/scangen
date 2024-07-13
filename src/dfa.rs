@@ -3,7 +3,6 @@
 //! The DFA is generated from the NFA using the subset construction algorithm.
 
 use itertools::Itertools;
-use log::trace;
 use regex_automata::{util::primitives::StateID, PatternID};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -453,7 +452,7 @@ impl std::fmt::Display for Dfa {
         for (source_id, targets) in &self.transitions {
             write!(f, "{} -> ", source_id.as_usize())?;
             for (char_class, target_id) in targets {
-                write!(f, "{}:{} ", char_class.ast.0, target_id.as_usize())?;
+                write!(f, "{}:{}", char_class.ast.0, target_id.as_usize())?;
             }
             writeln!(f)?
         }
