@@ -154,6 +154,32 @@ impl MultiPatternDfa {
     pub fn find_iter<'r, 'h>(&'r mut self, input: &'h str) -> FindMatches<'r, 'h> {
         FindMatches::new(self, input)
     }
+
+    pub(crate) fn generate_code(&self, output: &mut dyn std::io::Write) -> Result<()> {
+        writeln!(output, "const DFAS: &'static[Dfa; {}] = [", self.dfas.len()).unwrap();
+        for (index, dfa) in self.dfas.iter().enumerate() {
+            writeln!(output, "    /* {} */ ", index)?;
+            dfa.generate_code(output)?;
+        }
+        writeln!(output, "];")?;
+
+        writeln!(
+            output,
+            "fn matches_char_class(c: char, char_class: usize) -> bool {{"
+        )?;
+        writeln!(output, "    match char_class {{")?;
+        self.match_functions
+            .iter()
+            .enumerate()
+            .try_for_each(|(i, (ast, _))| -> Result<()> {
+                MatchFunction::generate_code(ast, i, output)?;
+                Ok(())
+            })?;
+        writeln!(output, "        _ => false,")?;
+        writeln!(output, "    }}")?;
+        writeln!(output, "}}")?;
+        Ok(())
+    }
 }
 
 impl std::fmt::Debug for MultiPatternDfa {

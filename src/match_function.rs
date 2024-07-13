@@ -175,6 +175,229 @@ impl MatchFunction {
             match_function
         })
     }
+
+    pub(crate) fn generate_code(
+        ast: &Ast,
+        match_function_index: usize,
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
+        // Add code generation here
+        writeln!(output, "        /* {} */", ast)?;
+        writeln!(output, "        {} => {{", match_function_index)?;
+        match ast {
+            Ast::Empty(_) => write!(output, "            true")?,
+            Ast::Dot(_) => write!(output, "            c != '\\n' && c != '\\r'")?,
+            Ast::Literal(ref l) => {
+                let Literal { c, .. } = **l;
+                write!(output, "            c == '{}'", c.escape_default())?
+            }
+            Ast::ClassUnicode(ref c) => {
+                Self::generate_code_from_class_unicode(c, output)?;
+            }
+            Ast::ClassPerl(ref c) => {
+                Self::generate_code_from_class_perl(c, output)?;
+            }
+            Ast::ClassBracketed(ref c) => {
+                Self::generate_code_from_class_bracketed(c, output)?;
+            }
+            _ => return Err(unsupported!(format!("{:#?}", ast))),
+        }
+        writeln!(output)?;
+        writeln!(output, "        }},")?;
+        Ok(())
+    }
+
+    fn generate_code_from_class_set(set: &ClassSet, output: &mut dyn std::io::Write) -> Result<()> {
+        let negated = false;
+        match set {
+            ClassSet::Item(item) => {
+                Self::generate_code_from_set_item(item.clone(), negated, output)
+            }
+            ClassSet::BinaryOp(bin_op) => {
+                Self::generate_code_from_binary_op(bin_op.clone(), negated, output)
+            }
+        }
+    }
+
+    fn generate_code_from_class_unicode(
+        c: &ClassUnicode,
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
+        let ClassUnicode { negated, kind, .. } = c;
+        write!(output, "            ")?;
+        if *negated {
+            write!(output, "!")?;
+        }
+        match kind {
+            Named(_) | NamedValue { .. } => {
+                // Actually no support for named classes and named values
+                // We need to ensure that this is not a match even if it is negated
+                let no_match = *negated;
+                write!(output, "{}", no_match)?;
+            }
+            OneLetter(ch) => match ch {
+                // Unicode class for Letters
+                'L' => write!(output, "c.is_alphabetic()")?,
+                // Unicode class for Numbers
+                'N' => write!(output, "c.is_numeric()")?,
+                // Unicode class for Whitespace
+                'Z' => write!(output, "c.is_whitespace()")?,
+                // Unicode class for Punctuation
+                // Attention: Only ASCII based punctuation is supported
+                'P' => write!(output, "c.is_ascii_punctuation()")?,
+                // Unicode class for Control characters
+                'C' => write!(output, "c.is_control()")?,
+                _ => return Err(unsupported!(format!("{:#?}", c))),
+            },
+        }
+        Ok(())
+    }
+
+    fn generate_code_from_class_perl(
+        perl: &ClassPerl,
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
+        let ClassPerl { negated, kind, .. } = perl;
+        write!(output, "            ")?;
+        if *negated {
+            write!(output, "!")?;
+        }
+        match kind {
+            ClassPerlKind::Digit => write!(output, "c.is_numeric()")?,
+            ClassPerlKind::Space => write!(output, "c.is_whitespace()")?,
+            ClassPerlKind::Word => write!(output, "c.is_alphanumeric()")?,
+        };
+        Ok(())
+    }
+
+    fn generate_code_from_class_bracketed(
+        bracketed: &ClassBracketed,
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
+        let ClassBracketed { negated, kind, .. } = bracketed;
+        match kind {
+            ClassSet::Item(item) => {
+                Self::generate_code_from_set_item(item.clone(), *negated, output)
+            }
+            ClassSet::BinaryOp(bin_op) => {
+                Self::generate_code_from_binary_op(bin_op.clone(), *negated, output)
+            }
+        }
+    }
+
+    fn generate_code_from_class_set_union(
+        union: &ClassSetUnion,
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
+        let num_items = union.items.len();
+        union.items.iter().enumerate().try_for_each(|(i, s)| {
+            write!(output, "(")?;
+            Self::generate_code_from_set_item(s.clone(), false, output)?;
+            if i < num_items - 1 {
+                write!(output, ") || ")?;
+            } else {
+                write!(output, ")")?;
+            }
+            Ok::<(), ScanGenError>(())
+        })?;
+        Ok(())
+    }
+
+    fn generate_code_from_set_item(
+        item: ClassSetItem,
+        negated: bool,
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
+        match item {
+            ClassSetItem::Empty(_) => write!(output, "false")?,
+            ClassSetItem::Literal(ref l) => {
+                let Literal { c, .. } = *l;
+                if negated {
+                    write!(output, "c != '{}'", c.escape_default())?
+                } else {
+                    write!(output, "c == '{}'", c.escape_default())?
+                }
+            }
+            ClassSetItem::Range(ref r) => {
+                let ClassSetRange {
+                    ref start, ref end, ..
+                } = *r;
+                let start = start.c;
+                let end = end.c;
+                if negated {
+                    write!(output, "c < '{}' || c > '{}'", start, end)?
+                } else {
+                    write!(output, "c >= '{}' && c <= '{}'", start, end)?
+                }
+            }
+            ClassSetItem::Ascii(ref a) => {
+                let ClassAscii {
+                    ref kind, negated, ..
+                } = *a;
+                let match_function = match kind {
+                    ClassAsciiKind::Alnum => "c.is_alphanumeric()",
+                    ClassAsciiKind::Alpha => "c.is_alphabetic()",
+                    ClassAsciiKind::Ascii => "c.is_ascii()",
+                    ClassAsciiKind::Blank => "c.is_ascii_whitespace()",
+                    ClassAsciiKind::Cntrl => "c.is_ascii_control()",
+                    ClassAsciiKind::Digit => "c.is_numeric()",
+                    ClassAsciiKind::Graph => "c.is_ascii_graphic()",
+                    ClassAsciiKind::Lower => "c.is_lowercase()",
+                    ClassAsciiKind::Print => "c.is_ascii_graphic()",
+                    ClassAsciiKind::Punct => "c.is_ascii_punctuation()",
+                    ClassAsciiKind::Space => "c.is_whitespace()",
+                    ClassAsciiKind::Upper => "c.is_uppercase()",
+                    ClassAsciiKind::Word => "c.is_alphanumeric()",
+                    ClassAsciiKind::Xdigit => "c.is_ascii_hexdigit()",
+                };
+                if negated {
+                    write!(output, "!")?
+                }
+                write!(output, "{}", match_function)?
+            }
+            ClassSetItem::Unicode(ref c) => Self::generate_code_from_class_unicode(c, output)?,
+            ClassSetItem::Perl(ref c) => Self::generate_code_from_class_perl(c, output)?,
+            ClassSetItem::Bracketed(ref c) => {
+                Self::generate_code_from_class_bracketed(c, output)?;
+            }
+            ClassSetItem::Union(ref c) => {
+                Self::generate_code_from_class_set_union(c, output)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn generate_code_from_binary_op(
+        clone: ClassSetBinaryOp,
+        negated: bool,
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
+        let ClassSetBinaryOp { kind, lhs, rhs, .. } = clone;
+        if negated {
+            write!(output, "!")?;
+        }
+        write!(output, "(")?;
+        match kind {
+            ClassSetBinaryOpKind::Intersection => {
+                Self::generate_code_from_class_set(&lhs, output)?;
+                write!(output, " && ")?;
+                Self::generate_code_from_class_set(&rhs, output)?;
+            }
+            ClassSetBinaryOpKind::Difference => {
+                Self::generate_code_from_class_set(&lhs, output)?;
+                write!(output, " && !(")?;
+                Self::generate_code_from_class_set(&rhs, output)?;
+                write!(output, ")")?;
+            }
+            ClassSetBinaryOpKind::SymmetricDifference => {
+                Self::generate_code_from_class_set(&lhs, output)?;
+                write!(output, " != ")?;
+                Self::generate_code_from_class_set(&rhs, output)?;
+            }
+        };
+        write!(output, ")")?;
+        Ok(())
+    }
 }
 
 impl std::fmt::Debug for MatchFunction {

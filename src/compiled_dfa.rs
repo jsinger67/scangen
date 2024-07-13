@@ -4,7 +4,10 @@ use regex_automata::{util::primitives::StateID, Span};
 use regex_syntax::ast::Ast;
 
 use crate::{
-    character_class::CharClassID, dfa::Dfa, match_function::MatchFunction, Result, ScanGenError,
+    character_class::{CharClassID, ComparableAst},
+    dfa::Dfa,
+    match_function::MatchFunction,
+    Result, ScanGenError,
 };
 
 /// A compiled DFA that can be used to match a string.
@@ -64,7 +67,7 @@ impl CompiledDfa {
                     // Create the match function for the character class if it does not exist
                     if let Some(pos) = match_functions
                         .iter()
-                        .position(|(ast, _)| *ast == char_class.ast.0)
+                        .position(|(ast, _)| ComparableAst(ast.clone()) == char_class.ast)
                     {
                         acc.push((*state, (pos.into(), *target_state)));
                         Ok::<Vec<(StateID, (CharClassID, StateID))>, ScanGenError>(acc)
@@ -143,6 +146,31 @@ impl CompiledDfa {
     /// Returns true if the search should continue on the next character.
     pub(crate) fn search_on(&self) -> bool {
         !self.matching_state.is_longest_match()
+    }
+
+    pub(crate) fn generate_code(&self, output: &mut dyn std::io::Write) -> Result<()> {
+        write!(output, "    dfa!(\"{}\", [", self.pattern.escape_default())?;
+        for state in &self.accepting_states {
+            write!(output, "{}, ", state.as_usize())?;
+        }
+        write!(output, "], [")?;
+
+        for (start, end) in &self.state_ranges {
+            write!(output, "({}, {}), ", start, end)?;
+        }
+        write!(output, "], [")?;
+        for (state, (char_class, target_state)) in &self.transitions {
+            write!(
+                output,
+                "({}, ({}, {})), ",
+                state.as_usize(),
+                char_class,
+                target_state.as_usize()
+            )?;
+        }
+        writeln!(output, "]),")?;
+
+        Ok(())
     }
 }
 

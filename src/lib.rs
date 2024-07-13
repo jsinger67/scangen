@@ -53,5 +53,8 @@ mod dfa;
 /// Module that provides types related to compiled DFAs
 mod compiled_dfa;
 
+/// Module that provides code formatting
+mod rust_code_formatter;
+
 // Reexport the `regex_automata` crate
 pub use regex_automata;

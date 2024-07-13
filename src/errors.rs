@@ -42,6 +42,10 @@ pub enum ScanGenErrorKind {
     #[error(transparent)]
     RegexSyntaxError(#[from] regex_syntax::ast::Error),
 
+    /// A std::io error occurred.
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+
     /// Used regex features that are not supported (yet).
     #[error("Unsupported regex feature: {0}")]
     UnsupportedFeature(String),
@@ -75,6 +79,12 @@ impl From<regex_automata::util::primitives::StateIDError> for ScanGenError {
 impl From<regex_syntax::ast::Error> for ScanGenError {
     fn from(error: regex_syntax::ast::Error) -> Self {
         ScanGenError::new(ScanGenErrorKind::RegexSyntaxError(error))
+    }
+}
+
+impl From<std::io::Error> for ScanGenError {
+    fn from(error: std::io::Error) -> Self {
+        ScanGenError::new(ScanGenErrorKind::IoError(error))
     }
 }
 
