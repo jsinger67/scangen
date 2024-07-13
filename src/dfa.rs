@@ -167,8 +167,6 @@ impl Dfa {
             }
         }
 
-        // trace!("Add state: {}: {:?}", state.id.as_usize(), state.nfa_states);
-
         self.states.push(state);
         Ok(state_id)
     }
@@ -188,22 +186,10 @@ impl Dfa {
         // First state in group is the representative state.
         // let representative_state_id = group.first().unwrap();
 
-        // trace!(
-        //     "Add representive state {} with id {}",
-        //     representative_state_id.as_usize(),
-        //     state_id.as_usize()
-        // );
-
         // Insert the representative state into the accepting states if any state in its group is
         // an accepting state.
         for state_in_group in group.iter() {
             if let Some(pattern_id) = accepting_states.get(state_in_group) {
-                // trace!(
-                //     "* State {} with pattern id {} is accepting state (from state {}).",
-                //     state_id.as_usize(),
-                //     pattern_id.as_usize(),
-                //     state_in_group.as_usize()
-                // );
                 self.accepting_states.insert(state_id, *pattern_id);
             }
         }
@@ -212,44 +198,16 @@ impl Dfa {
         Ok(state_id)
     }
 
-    /// Trace out a partition of the DFA.
-    #[allow(dead_code)]
-    fn trace_partition(context: &str, partition: &[StateGroup]) {
-        trace!("Partition {}:", context);
-        for (i, group) in partition.iter().enumerate() {
-            trace!("Group {}: {:?}", i, group);
-        }
-    }
-
-    #[allow(dead_code)]
-    fn trace_transitions_to_groups(
-        _state_id: StateID,
-        transitions_to_groups: &TransitionsToPartitionGroups,
-    ) {
-        // trace!("Transitions of state {} to groups:", state_id.as_usize());
-        for (char_class, group) in &transitions_to_groups.0 {
-            trace!(
-                "{}:{} -> {}",
-                char_class.ast.0,
-                char_class.id.as_usize(),
-                group
-            );
-        }
-    }
-
     /// Minimize the DFA.
     /// The Nfa states are removed from the DFA states during minimization. They are not needed
     /// anymore after the DFA is created.
     pub fn minimize(&self) -> Result<Self> {
-        // trace!("Minimize DFA ----------------------------");
         let mut partition_old = self.calculate_initial_partition();
         let mut partition_new = Partition::new();
         let mut changed = true;
-        // Self::trace_partition("initial", &partition_old);
 
         while changed {
             partition_new = self.calculate_new_partition(&partition_old);
-            // Self::trace_partition("new", &partition_new);
             changed = partition_new != partition_old;
             partition_old.clone_from(&partition_new);
         }
@@ -302,10 +260,10 @@ impl Dfa {
     /// The new partition is returned.
     fn calculate_new_partition(&self, partition: &[StateGroup]) -> Partition {
         let mut new_partition = Partition::new();
-        for (index, group) in partition.iter().enumerate() {
+        for group in partition {
             // The new group receives the states from the old group which are distiguishable from
             // the other states in group.
-            self.split_group(index, group, partition)
+            self.split_group(group, partition)
                 .into_iter()
                 .for_each(|new_group| {
                     new_partition.push(new_group);
@@ -314,17 +272,11 @@ impl Dfa {
         new_partition
     }
 
-    fn split_group(
-        &self,
-        _group_index: usize,
-        group: &StateGroup,
-        partition: &[StateGroup],
-    ) -> Partition {
+    fn split_group(&self, group: &StateGroup, partition: &[StateGroup]) -> Partition {
         // If the group contains only one state, the group can't be split further.
         if group.len() == 1 {
             return vec![group.clone()];
         }
-        // trace!("Split group {}: {:?}", group_index, group);
         let mut transition_map_to_states: BTreeMap<TransitionsToPartitionGroups, StateGroup> =
             BTreeMap::new();
         for state_id in group {
@@ -357,10 +309,8 @@ impl Dfa {
                 let partition_group = self.find_group(*transition.1, partition).unwrap();
                 transitions_to_partition_groups.insert(transition.0.clone(), partition_group);
             }
-            // Self::trace_transitions_to_groups(state_id, &transitions_to_partition_groups);
             transitions_to_partition_groups
         } else {
-            // trace!("** State {} has no transitions.", state_id.as_usize());
             TransitionsToPartitionGroups::new()
         }
     }
@@ -375,9 +325,6 @@ impl Dfa {
     /// The accepting states are updated accordingly.
     /// The new DFA is returned.
     fn create_from_partition(&self, partition: &[StateGroup]) -> Result<Dfa> {
-        // trace!("Create DFA ------------------------------");
-        // trace!("from partition {:?}", partition);
-
         let mut dfa = Dfa {
             states: Vec::new(),
             patterns: self.patterns.clone(),
@@ -395,8 +342,6 @@ impl Dfa {
 
         // Then renumber the states in the transitions.
         dfa.update_transitions(partition);
-
-        // trace!("Minimized DFA:\n{}", dfa);
 
         Ok(dfa)
     }

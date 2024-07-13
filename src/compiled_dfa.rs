@@ -73,7 +73,6 @@ impl CompiledDfa {
     pub(crate) fn advance(&mut self, c_pos: usize, c: char) {
         // Get the transitions for the current state
         if let Some(transitions) = self.dfa.transitions().get(&self.current_state) {
-            // trace!("Current state: {}", self.current_state.as_usize());
             if let Some(next_state) = Self::find_transition(transitions, &self.match_functions, c) {
                 if self.dfa.accepting_states().contains_key(&next_state) {
                     self.matching_state.transition_to_accepting(c_pos, c);
@@ -143,13 +142,6 @@ impl CompiledDfa {
     ) -> Option<StateID> {
         for (char_class, target_state) in transitions {
             if match_functions[char_class.id()].call(c) {
-                // trace!(
-                //     "Transition: '{}'({}) {:?} -> {}",
-                //     c,
-                //     char_class.id,
-                //     char_class.ast.0.to_string(),
-                //     target_state.as_usize()
-                // );
                 return Some(*target_state);
             }
         }
@@ -184,7 +176,8 @@ impl MatchingState {
         MatchingState::default()
     }
 
-    // See matching_state.dot for the state diagram
+    /// No transition was found.
+    /// See matching_state.dot for the state diagram
     pub(crate) fn no_transition(&mut self) {
         match self.state {
             InnerMatchingState::None => {
@@ -204,7 +197,8 @@ impl MatchingState {
         };
     }
 
-    // See matching_state.dot for the state diagram
+    /// Transition to a non-accepting state.
+    /// See matching_state.dot for the state diagram
     pub(crate) fn transition_to_non_accepting(&mut self, i: usize) {
         match self.state {
             InnerMatchingState::None => {
@@ -226,7 +220,8 @@ impl MatchingState {
         }
     }
 
-    // See matching_state.dot for the state diagram
+    /// Transition to an accepting state.
+    /// See matching_state.dot for the state diagram
     pub(crate) fn transition_to_accepting(&mut self, i: usize, c: char) {
         match self.state {
             InnerMatchingState::None => {
@@ -285,6 +280,7 @@ impl MatchingState {
 }
 
 /// The state enumeration of the DFA during matching.
+/// See matching_state.dot for the state diagram
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum InnerMatchingState {
     /// No match recorded so far.

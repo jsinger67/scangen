@@ -99,7 +99,6 @@ impl MultiPatternDfa {
                         && span.len() > current_match.unwrap().span().len()
                 {
                     // We have a match and we continue the look for a longer match.
-                    // trace!("First longest match is now #{}: {:?}", pattern, span);
                     current_match = Some(Match::new(PatternID::new_unchecked(pattern), span));
                 }
             }
@@ -114,11 +113,6 @@ impl MultiPatternDfa {
         for dfa in self.dfas.iter_mut() {
             dfa.reset();
         }
-
-        // trace!(
-        //     "Starting search from position {:?}",
-        //     char_indices.clone().next().unwrap_or((0, ' '))
-        // );
 
         for (i, c) in char_indices {
             for dfa in self.dfas.iter_mut() {
@@ -145,11 +139,6 @@ impl MultiPatternDfa {
         for (i, c) in chars {
             for dfa in self.dfas.iter_mut() {
                 dfa.advance(i, c);
-                // trace!(
-                //     "DFA for pattern #{} is in {:?}",
-                //     pattern_index,
-                //     dfa.matching_state().inner_state()
-                // );
             }
 
             if !self.dfas.iter().any(|dfa| dfa.search_on()) {
