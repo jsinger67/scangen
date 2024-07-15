@@ -55,6 +55,11 @@ mod compiled_dfa;
 
 /// Module that provides code formatting
 mod rust_code_formatter;
+pub use rust_code_formatter::try_format;
+
+/// Runtime module
+mod runtime;
+pub use runtime::{Dfa, DfaData, FindMatches, Regex};
 
 // Reexport the `regex_automata` crate
 pub use regex_automata;

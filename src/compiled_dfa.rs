@@ -149,16 +149,16 @@ impl CompiledDfa {
     }
 
     pub(crate) fn generate_code(&self, output: &mut dyn std::io::Write) -> Result<()> {
-        write!(output, "    dfa!(\"{}\", [", self.pattern.escape_default())?;
+        write!(output, "    (\"{}\", &[", self.pattern.escape_default())?;
         for state in &self.accepting_states {
             write!(output, "{}, ", state.as_usize())?;
         }
-        write!(output, "], [")?;
+        write!(output, "], &[")?;
 
         for (start, end) in &self.state_ranges {
             write!(output, "({}, {}), ", start, end)?;
         }
-        write!(output, "], [")?;
+        write!(output, "], &[")?;
         for (state, (char_class, target_state)) in &self.transitions {
             write!(
                 output,
@@ -188,7 +188,7 @@ impl std::fmt::Debug for CompiledDfa {
 
 /// The state of the DFA during matching.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub(crate) struct MatchingState {
+pub struct MatchingState {
     // The current state of the DFA during matching
     state: InnerMatchingState,
     // The start position of the current match
@@ -312,7 +312,7 @@ impl MatchingState {
 /// The state enumeration of the DFA during matching.
 /// See matching_state.dot for the state diagram
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum InnerMatchingState {
+pub enum InnerMatchingState {
     /// No match recorded so far.
     /// Continue search on the next character.
     ///

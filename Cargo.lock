@@ -189,6 +189,7 @@ dependencies = [
  "env_logger",
  "itertools",
  "log",
+ "regex",
  "regex-automata",
  "regex-syntax",
  "thiserror",

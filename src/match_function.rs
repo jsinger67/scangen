@@ -291,12 +291,9 @@ impl MatchFunction {
     ) -> Result<()> {
         let num_items = union.items.len();
         union.items.iter().enumerate().try_for_each(|(i, s)| {
-            write!(output, "(")?;
             Self::generate_code_from_set_item(s.clone(), false, output)?;
             if i < num_items - 1 {
-                write!(output, ") || ")?;
-            } else {
-                write!(output, ")")?;
+                write!(output, " || ")?;
             }
             Ok::<(), ScanGenError>(())
         })?;
@@ -325,10 +322,9 @@ impl MatchFunction {
                 let start = start.c;
                 let end = end.c;
                 if negated {
-                    write!(output, "c < '{}' || c > '{}'", start, end)?
-                } else {
-                    write!(output, "c >= '{}' && c <= '{}'", start, end)?
+                    write!(output, "!")?
                 }
+                write!(output, "('{}'..='{}').contains(&c)", start, end)?
             }
             ClassSetItem::Ascii(ref a) => {
                 let ClassAscii {
@@ -374,9 +370,8 @@ impl MatchFunction {
     ) -> Result<()> {
         let ClassSetBinaryOp { kind, lhs, rhs, .. } = clone;
         if negated {
-            write!(output, "!")?;
+            write!(output, "!(")?;
         }
-        write!(output, "(")?;
         match kind {
             ClassSetBinaryOpKind::Intersection => {
                 Self::generate_code_from_class_set(&lhs, output)?;
@@ -395,7 +390,9 @@ impl MatchFunction {
                 Self::generate_code_from_class_set(&rhs, output)?;
             }
         };
-        write!(output, ")")?;
+        if negated {
+            write!(output, ")")?;
+        }
         Ok(())
     }
 }

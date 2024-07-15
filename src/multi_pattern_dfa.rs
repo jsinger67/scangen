@@ -156,12 +156,21 @@ impl MultiPatternDfa {
     }
 
     pub(crate) fn generate_code(&self, output: &mut dyn std::io::Write) -> Result<()> {
-        writeln!(output, "const DFAS: &'static[Dfa; {}] = [", self.dfas.len()).unwrap();
+        writeln!(
+            output,
+            r"#![allow(clippy::manual_is_ascii_check)]
+
+ use scangen::{{Dfa, DfaData, FindMatches, Regex}};
+ 
+ "
+        )?;
+        writeln!(output, "const DFAS: &[DfaData; {}] = &[", self.dfas.len())?;
         for (index, dfa) in self.dfas.iter().enumerate() {
             writeln!(output, "    /* {} */ ", index)?;
             dfa.generate_code(output)?;
         }
         writeln!(output, "];")?;
+        writeln!(output)?;
 
         writeln!(
             output,
@@ -177,7 +186,23 @@ impl MultiPatternDfa {
             })?;
         writeln!(output, "        _ => false,")?;
         writeln!(output, "    }}")?;
-        writeln!(output, "}}")?;
+        writeln!(
+            output,
+            r"}}
+
+pub(crate) fn create_regex() -> Regex {{
+    let dfas: Vec<Dfa> = DFAS.iter().map(|dfa| dfa.into()).collect();
+    Regex {{ dfas }}
+}}
+
+pub(crate) fn create_find_iter<'r, 'h>(
+    regex: &'r mut Regex,
+    input: &'h str,
+) -> FindMatches<'r, 'h> {{
+    regex.find_iter(input, matches_char_class)
+}}
+"
+        )?;
         Ok(())
     }
 }

@@ -33,6 +33,7 @@ pub fn generate_code(patterns: &[&str], output: &mut dyn std::io::Write) -> Resu
 
 #[cfg(test)]
 mod tests {
+    use regex::Regex;
     use std::fs;
 
     use crate::rust_code_formatter::try_format;
@@ -98,9 +99,15 @@ mod tests {
         try_format("data/test_generate_code.rs").unwrap();
 
         // Assert that the generated code is correct
-        // let generated_code = fs::read_to_string("data/test_generate_code.rs").unwrap();
-        // let expected_generated_code =
-        //     fs::read_to_string("data/expected/test_generate_code.rs").unwrap();
-        // assert_eq!(generated_code, expected_generated_code);
+        let generated_code = fs::read_to_string("data/test_generate_code.rs").unwrap();
+        let expected_generated_code =
+            fs::read_to_string("data/expected/test_generate_code.rs").unwrap();
+        let rx_newline: Regex = Regex::new(r"\r?\n|\r").unwrap();
+        // We replace all newlines with '\n' to make the comparison platform independent
+        assert_eq!(
+            rx_newline.replace_all(&expected_generated_code, "\n"),
+            rx_newline.replace_all(&generated_code, "\n"),
+            "generation result mismatch!"
+        );
     }
 }
