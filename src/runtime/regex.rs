@@ -8,6 +8,8 @@ use super::{Dfa, FindMatches};
 #[derive(Debug)]
 pub struct Regex {
     /// The DFAs that are used to search for matches.
+    /// Each DFA corresponds to a separate pattern in the regular expression, or to be more precise,
+    /// to a separate token the lexer/scanner can recognize.
     pub dfas: Vec<Dfa>,
 }
 

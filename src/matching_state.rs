@@ -2,7 +2,12 @@ use regex_automata::Span;
 
 /// The state of the DFA during matching.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct MatchingState {
+pub struct MatchingState<S>
+where
+    S: std::fmt::Debug + Default + Clone + Copy + PartialEq + Eq,
+{
+    // The current state number of the DFA during matching
+    current_state: S,
     // The current state of the DFA during matching
     state: InnerMatchingState,
     // The start position of the current match
@@ -11,14 +16,30 @@ pub struct MatchingState {
     end_position: Option<usize>,
 }
 
-impl MatchingState {
-    pub(crate) fn new() -> Self {
+impl<S> MatchingState<S>
+where
+    S: std::fmt::Debug + Default + Clone + Copy + PartialEq + Eq,
+{
+    /// Create a new matching state.
+    pub fn new() -> Self {
         MatchingState::default()
+    }
+
+    /// Set the current state of the DFA during matching.
+    #[inline]
+    pub fn set_current_state(&mut self, state: S) {
+        self.current_state = state;
+    }
+
+    /// Get the current state of the DFA during matching.
+    #[inline]
+    pub fn current_state(&self) -> S {
+        self.current_state
     }
 
     /// No transition was found.
     /// See matching_state.dot for the state diagram
-    pub(crate) fn no_transition(&mut self) {
+    pub fn no_transition(&mut self) {
         match self.state {
             InnerMatchingState::None => {
                 // We had no match, continue search
@@ -39,7 +60,7 @@ impl MatchingState {
 
     /// Transition to a non-accepting state.
     /// See matching_state.dot for the state diagram
-    pub(crate) fn transition_to_non_accepting(&mut self, i: usize) {
+    pub fn transition_to_non_accepting(&mut self, i: usize) {
         match self.state {
             InnerMatchingState::None => {
                 *self = MatchingState {
@@ -62,10 +83,11 @@ impl MatchingState {
 
     /// Transition to an accepting state.
     /// See matching_state.dot for the state diagram
-    pub(crate) fn transition_to_accepting(&mut self, i: usize, c: char) {
+    pub fn transition_to_accepting(&mut self, i: usize, c: char) {
         match self.state {
             InnerMatchingState::None => {
                 *self = MatchingState {
+                    current_state: S::default(),
                     state: InnerMatchingState::Accepting,
                     start_position: Some(i),
                     end_position: Some(i + c.len_utf8()),

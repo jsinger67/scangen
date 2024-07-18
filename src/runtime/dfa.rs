@@ -21,10 +21,8 @@ pub struct Dfa {
     pub state_ranges: &'static [(usize, usize)],
     /// The transitions for each state.
     pub transitions: &'static [(usize, (usize, usize))],
-    /// The current state of the DFA.
-    pub current_state: usize,
     /// The current matching state of the DFA.
-    pub matching_state: MatchingState,
+    pub matching_state: MatchingState<usize>,
 }
 
 impl Dfa {
@@ -42,7 +40,7 @@ impl Dfa {
             } else {
                 self.matching_state.transition_to_non_accepting(c_pos);
             }
-            self.current_state = next_state;
+            self.matching_state.set_current_state(next_state);
         } else {
             self.matching_state.no_transition();
         }
@@ -55,10 +53,10 @@ impl Dfa {
         c: char,
         matches_char_class: fn(char, usize) -> bool,
     ) -> Option<usize> {
-        let (start, end) = self.state_ranges[self.current_state];
+        let (start, end) = self.state_ranges[self.matching_state.current_state()];
         let transitions = &self.transitions[start..end];
         for (state, (char_class, target_state)) in transitions {
-            debug_assert_eq!(state, &self.current_state);
+            debug_assert_eq!(state, &self.matching_state.current_state());
             if (matches_char_class)(c, *char_class) {
                 return Some(*target_state);
             }
@@ -68,7 +66,6 @@ impl Dfa {
 
     #[inline]
     pub(crate) fn reset(&mut self) {
-        self.current_state = 0;
         self.matching_state = MatchingState::new();
     }
 
@@ -92,7 +89,6 @@ impl From<&DfaData> for Dfa {
             accepting_states: data.1,
             state_ranges: data.2,
             transitions: data.3,
-            current_state: 0,
             matching_state: MatchingState::new(),
         }
     }

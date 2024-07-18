@@ -29,10 +29,8 @@ pub struct CompiledDfa {
     state_ranges: Vec<(usize, usize)>,
     /// The transitions of the DFA.
     transitions: Vec<(StateID, (CharClassID, StateID))>,
-    /// The current state of the DFA during matching
-    current_state: StateID,
     /// The state of matching
-    matching_state: MatchingState,
+    matching_state: MatchingState<StateID>,
 }
 
 impl CompiledDfa {
@@ -87,17 +85,16 @@ impl CompiledDfa {
         Ok(())
     }
 
-    pub(crate) fn matching_state(&self) -> &MatchingState {
+    pub(crate) fn matching_state(&self) -> &MatchingState<StateID> {
         &self.matching_state
     }
 
     pub(crate) fn reset(&mut self) {
-        self.current_state = StateID::new_unchecked(0);
         self.matching_state = MatchingState::new();
     }
 
     pub(crate) fn current_state(&self) -> StateID {
-        self.current_state
+        self.matching_state.current_state()
     }
 
     pub(crate) fn current_match(&self) -> Option<Span> {
@@ -121,7 +118,7 @@ impl CompiledDfa {
             } else {
                 self.matching_state.transition_to_non_accepting(c_pos);
             }
-            self.current_state = next_state;
+            self.matching_state.set_current_state(next_state);
         } else {
             self.matching_state.no_transition();
         }
@@ -133,7 +130,7 @@ impl CompiledDfa {
         c: char,
         match_functions: &[(Ast, MatchFunction)],
     ) -> Option<StateID> {
-        let (start, end) = self.state_ranges[self.current_state.as_usize()];
+        let (start, end) = self.state_ranges[self.matching_state.current_state().as_usize()];
         let transitions = &self.transitions[start..end];
         for (_, (char_class, target_state)) in transitions {
             if match_functions[char_class.as_usize()].1.call(c) {
@@ -180,7 +177,7 @@ impl std::fmt::Debug for CompiledDfa {
             .field("accepting_states", &self.accepting_states)
             .field("state_ranges", &self.state_ranges)
             .field("transitions", &self.transitions)
-            .field("current_state", &self.current_state)
+            .field("current_state", &self.matching_state.current_state())
             .field("matching_state", &self.matching_state)
             .finish()
     }
