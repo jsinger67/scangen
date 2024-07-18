@@ -1,6 +1,6 @@
 use regex_automata::Span;
 
-use crate::compiled_dfa::MatchingState;
+use crate::MatchingState;
 
 /// The data of a DFA generated as Rust code.
 pub type DfaData = (

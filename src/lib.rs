@@ -47,6 +47,10 @@ mod character_class;
 /// Module that provides function type that can be used to decide if a character is in a character class.
 mod match_function;
 
+/// Module that provides types related to matching state
+mod matching_state;
+pub use matching_state::{InnerMatchingState, MatchingState};
+
 /// Module that provides types related to DFA
 mod dfa;
 
