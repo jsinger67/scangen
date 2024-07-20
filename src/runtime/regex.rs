@@ -1,3 +1,4 @@
+use log::trace;
 use regex_automata::{Match, PatternID};
 
 use crate::DfaData;
@@ -5,11 +6,13 @@ use crate::DfaData;
 use super::{Dfa, FindMatches};
 
 /// A regular expression.
+/// It consists of multiple DFAs that are used to search for matches.
+/// Each DFA corresponds to a separate pattern in the regular expression, or to be more precise,
+/// to a separate token the lexer/scanner can recognize.
+/// The DFAs are advanced in parallel to search for matches.
 #[derive(Debug)]
 pub struct Regex {
     /// The DFAs that are used to search for matches.
-    /// Each DFA corresponds to a separate pattern in the regular expression, or to be more precise,
-    /// to a separate token the lexer/scanner can recognize.
     pub dfas: Vec<Dfa>,
 }
 
@@ -36,16 +39,33 @@ impl Regex {
             dfa.reset();
         }
 
+        // All indices of the DFAs that are still active.
+        let mut active_dfas = (0..self.dfas.len()).collect::<Vec<_>>();
+
         for (i, c) in char_indices {
-            for dfa in self.dfas.iter_mut() {
-                dfa.advance(i, c, matches_char_class);
+            for dfa_index in &active_dfas {
+                self.dfas[*dfa_index].advance(i, c, matches_char_class);
             }
 
-            if !self.dfas.iter().any(|dfa| dfa.search_on()) {
-                // No DFA is still searching, so we can stop the search.
+            if i == 0 {
+                // We remove all DFAs that did not find a match at the start position.
+                for (index, dfa) in self.dfas.iter().enumerate() {
+                    if dfa.matching_state.is_no_match() {
+                        active_dfas.retain(|&dfa_index| dfa_index != index);
+                    }
+                }
+            }
+
+            // We remove all DFAs from `active_dfas` that finished.
+            active_dfas.retain(|&dfa_index| self.dfas[dfa_index].search_for_longer_match());
+
+            // If all DFAs have finished, we can stop the search.
+            if active_dfas.is_empty() {
                 break;
             }
         }
+
+        trace!("Active DFAs: {:?}", active_dfas);
 
         self.find_first_longest_match()
     }
@@ -67,6 +87,7 @@ impl Regex {
                 }
             }
         }
+        trace!("Current match: {:?}", current_match);
         current_match
     }
 }

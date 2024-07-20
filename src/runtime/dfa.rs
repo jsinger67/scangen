@@ -69,10 +69,11 @@ impl Dfa {
         self.matching_state = MatchingState::new();
     }
 
-    /// Returns true if the search should continue on the next character.
+    /// Returns true if the search should continue on the next character if the automaton has ever
+    /// been in the matching state Start.
     #[inline]
-    pub(crate) fn search_on(&self) -> bool {
-        !self.matching_state.is_longest_match()
+    pub(crate) fn search_for_longer_match(&self) -> bool {
+        !self.matching_state.is_longest_match() && !self.matching_state.is_no_match()
     }
 
     /// Returns the current match.
