@@ -1,4 +1,3 @@
-use log::trace;
 use regex_automata::{Match, PatternID};
 
 use crate::DfaData;
@@ -65,8 +64,6 @@ impl Regex {
             }
         }
 
-        trace!("Active DFAs: {:?}", active_dfas);
-
         self.find_first_longest_match()
     }
 
@@ -87,7 +84,6 @@ impl Regex {
                 }
             }
         }
-        trace!("Current match: {:?}", current_match);
         current_match
     }
 }
