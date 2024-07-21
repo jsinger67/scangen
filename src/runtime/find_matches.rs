@@ -38,7 +38,7 @@ impl<'r, 'h> FindMatches<'r, 'h> {
     /// If no match is found, `None` is returned.
     #[inline]
     pub fn next_match(&mut self) -> Option<Match> {
-        let result = self
+        let mut result = self
             .regex
             .find_from(self.char_indices.clone(), self.matches_char_class);
         if let Some(matched) = result {
@@ -46,6 +46,20 @@ impl<'r, 'h> FindMatches<'r, 'h> {
             let end = matched.span().end - 1;
             let mut peekable = self.char_indices.by_ref().peekable();
             while peekable.next_if(|(i, _)| *i < end).is_some() {}
+        } else {
+            // Advance the char_indices iterator by one character and try again.
+            while self.char_indices.next().is_some() {
+                result = self
+                    .regex
+                    .find_from(self.char_indices.clone(), self.matches_char_class);
+                if let Some(matched) = result {
+                    // Advance the char_indices iterator to the end of the match.
+                    let end = matched.span().end - 1;
+                    let mut peekable = self.char_indices.by_ref().peekable();
+                    while peekable.next_if(|(i, _)| *i < end).is_some() {}
+                    break;
+                }
+            }
         }
         result
     }
