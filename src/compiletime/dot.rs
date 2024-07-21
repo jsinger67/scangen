@@ -1,18 +1,18 @@
 //! The `dot` module contains the conversion from an NFA to a graphviz dot format.
+//! The functions and macros in this module are used for testing and debugging purposes.
 
 use std::io::Write;
 
 use dot_writer::{Attributes, DotWriter, RankDirection};
-use regex_automata::util::primitives::StateID;
 
-use crate::{dfa::Dfa, multi_pattern_nfa::MultiPatternNfa, nfa::Nfa, SinglePatternDfa};
+use super::{dfa::Dfa, nfa::Nfa, MultiPatternNfa, StateID};
 
 /// A macro that simplifies the rendering of a dot file for a NFA.
 #[macro_export]
 macro_rules! nfa_render_to {
     ($nfa:expr, $label:expr) => {
         let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        nfa_render_to($nfa, $label, &mut f);
+        $crate::compiletime::dot::nfa_render_to($nfa, $label, &mut f);
     };
 }
 
@@ -21,7 +21,7 @@ macro_rules! nfa_render_to {
 macro_rules! multi_nfa_render_to {
     ($nfa:expr, $label:expr) => {
         let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        multi_nfa_render_to($nfa, $label, &mut f);
+        $crate::compiletime::dot::multi_nfa_render_to($nfa, $label, &mut f);
     };
 }
 
@@ -30,21 +30,13 @@ macro_rules! multi_nfa_render_to {
 macro_rules! dfa_render_to {
     ($nfa:expr, $label:expr) => {
         let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        dfa_render_to($nfa, $label, &mut f);
-    };
-}
-
-/// A macro that simplifies the rendering of a dot file for a single-pattern DFA.
-#[macro_export]
-macro_rules! single_dfa_render_to {
-    ($nfa:expr, $label:expr) => {
-        let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        single_dfa_render_to($nfa, $label, &mut f);
+        $crate::compiletime::dot::dfa_render_to($nfa, $label, &mut f);
     };
 }
 
 /// Render the NFA to a graphviz dot format.
-pub fn nfa_render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
+#[allow(dead_code)]
+pub(crate) fn nfa_render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();
@@ -93,7 +85,8 @@ pub fn nfa_render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
 }
 
 /// Render the multi-pattern NFA to a graphviz dot format.
-pub fn multi_nfa_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mut W) {
+#[allow(dead_code)]
+pub(crate) fn multi_nfa_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();
@@ -156,7 +149,8 @@ pub fn multi_nfa_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output:
 }
 
 /// Render a DFA to a graphviz dot format.
-pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
+#[allow(dead_code)]
+pub(crate) fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();
@@ -173,10 +167,7 @@ pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
                 .set_color(dot_writer::Color::Blue)
                 .set_pen_width(3.0);
         }
-        if let Some(pattern_id) = dfa
-            .accepting_states()
-            .get(&StateID::new_unchecked(state_id))
-        {
+        if let Some(pattern_id) = dfa.accepting_states().get(&StateID::new(state_id)) {
             source_node
                 .set_color(dot_writer::Color::Red)
                 .set_pen_width(3.0)
@@ -186,57 +177,6 @@ pub fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
                     dfa.patterns()[pattern_id.as_usize()].escape_default(),
                     pattern_id.as_usize(),
                 ));
-        }
-    }
-    // Render the transitions of the DFA
-    for (source_id, targets) in dfa.transitions() {
-        for (char_id, target_id) in targets.iter() {
-            // Label the edge with the character class used to transition to the target state.
-            digraph
-                .edge(
-                    &format!("node_{}", source_id.as_usize()),
-                    &format!("node_{}", target_id.as_usize()),
-                )
-                .attributes()
-                .set_label(&format!(
-                    "{}:{}",
-                    dfa.char_classes()[char_id.id()]
-                        .ast
-                        .0
-                        .to_string()
-                        .escape_default(),
-                    char_id.id()
-                ));
-        }
-    }
-}
-
-/// Render a single-pattern DFA to a graphviz dot format.
-pub fn single_dfa_render_to<W: Write>(dfa: &SinglePatternDfa, label: &str, output: &mut W) {
-    let mut writer = DotWriter::from(output);
-    writer.set_pretty_print(true);
-    let mut digraph = writer.digraph();
-    digraph
-        .set_label(label)
-        .set_rank_direction(RankDirection::LeftRight);
-    // Render the states of the DFA
-    for state_id in 0..dfa.states().len() {
-        let mut source_node = digraph.node_auto();
-        source_node.set_label(&state_id.to_string());
-        if state_id == 0 {
-            source_node
-                .set_shape(dot_writer::Shape::Circle)
-                .set_color(dot_writer::Color::Blue)
-                .set_pen_width(3.0);
-        }
-        if dfa
-            .accepting_states()
-            .contains(&StateID::new_unchecked(state_id))
-        {
-            source_node
-                .set_shape(dot_writer::Shape::Circle)
-                .set_color(dot_writer::Color::Red)
-                .set_pen_width(3.0);
         }
     }
     // Render the transitions of the DFA

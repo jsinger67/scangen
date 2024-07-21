@@ -1,8 +1,8 @@
-use regex_automata::Span;
+use crate::common::Span;
 
 /// The state of the DFA during matching.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct MatchingState<S>
+pub(crate) struct MatchingState<S>
 where
     S: std::fmt::Debug + Default + Clone + Copy + PartialEq + Eq,
 {
@@ -21,25 +21,25 @@ where
     S: std::fmt::Debug + Default + Clone + Copy + PartialEq + Eq,
 {
     /// Create a new matching state.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         MatchingState::default()
     }
 
     /// Set the current state of the DFA during matching.
     #[inline]
-    pub fn set_current_state(&mut self, state: S) {
+    pub(crate) fn set_current_state(&mut self, state: S) {
         self.current_state = state;
     }
 
     /// Get the current state of the DFA during matching.
     #[inline]
-    pub fn current_state(&self) -> S {
+    pub(crate) fn current_state(&self) -> S {
         self.current_state
     }
 
     /// No transition was found.
     /// See matching_state.dot for the state diagram
-    pub fn no_transition(&mut self) {
+    pub(crate) fn no_transition(&mut self) {
         match self.state {
             InnerMatchingState::None => {
                 // We had no match, continue search
@@ -60,7 +60,7 @@ where
 
     /// Transition to a non-accepting state.
     /// See matching_state.dot for the state diagram
-    pub fn transition_to_non_accepting(&mut self, i: usize) {
+    pub(crate) fn transition_to_non_accepting(&mut self, i: usize) {
         match self.state {
             InnerMatchingState::None => {
                 *self = MatchingState {
@@ -83,7 +83,7 @@ where
 
     /// Transition to an accepting state.
     /// See matching_state.dot for the state diagram
-    pub fn transition_to_accepting(&mut self, i: usize, c: char) {
+    pub(crate) fn transition_to_accepting(&mut self, i: usize, c: char) {
         match self.state {
             InnerMatchingState::None => {
                 *self = MatchingState {
@@ -114,30 +114,32 @@ where
 
     /// Returns true if the current state is no match.
     #[inline]
-    pub fn is_no_match(&self) -> bool {
+    pub(crate) fn is_no_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::None)
     }
 
     /// Returns true if in the current state a start of a match has been recorded.
     #[inline]
-    pub fn is_start_match(&self) -> bool {
+    #[allow(dead_code)]
+    pub(crate) fn is_start_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::Start)
     }
 
     /// Returns true if the current state is an accepting match.
     #[inline]
-    pub fn is_accepting_match(&self) -> bool {
+    #[allow(dead_code)]
+    pub(crate) fn is_accepting_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::Accepting)
     }
 
     /// Returns true if the current state is the longest match.
     #[inline]
-    pub fn is_longest_match(&self) -> bool {
+    pub(crate) fn is_longest_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::Longest)
     }
 
     /// Returns the last match found.
-    pub fn last_match(&self) -> Option<Span> {
+    pub(crate) fn last_match(&self) -> Option<Span> {
         if let (Some(start), Some(end)) = (self.start_position, self.end_position) {
             Some(Span { start, end })
         } else {
@@ -146,7 +148,8 @@ where
     }
 
     /// Returns the current state of the DFA during matching.
-    pub fn inner_state(&self) -> InnerMatchingState {
+    #[allow(dead_code)]
+    pub(crate) fn inner_state(&self) -> InnerMatchingState {
         self.state
     }
 }
@@ -154,7 +157,7 @@ where
 /// The state enumeration of the DFA during matching.
 /// See matching_state.dot for the state diagram
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum InnerMatchingState {
+pub(crate) enum InnerMatchingState {
     /// No match recorded so far.
     /// Continue search on the next character.
     ///

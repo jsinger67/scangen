@@ -190,7 +190,6 @@ dependencies = [
  "itertools",
  "log",
  "regex",
- "regex-automata",
  "regex-syntax",
  "thiserror",
 ]

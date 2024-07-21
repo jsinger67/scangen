@@ -1,6 +1,4 @@
-use regex_automata::Span;
-
-use crate::MatchingState;
+use crate::common::{MatchingState, Span};
 
 /// The data of a DFA generated as Rust code.
 pub type DfaData = (
@@ -22,7 +20,7 @@ pub struct Dfa {
     /// The transitions for each state.
     pub transitions: &'static [(usize, (usize, usize))],
     /// The current matching state of the DFA.
-    pub matching_state: MatchingState<usize>,
+    pub(crate) matching_state: MatchingState<usize>,
 }
 
 impl Dfa {

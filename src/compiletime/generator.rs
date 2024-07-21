@@ -1,7 +1,7 @@
 //! This module contains the source generator for the regex syntax.
 //! The source generator is used to generate code from the regex syntax.
 
-use crate::{MultiPatternDfa, Result};
+use crate::{compiletime::MultiPatternDfa, Result};
 use log::trace;
 use std::time::Instant;
 
@@ -36,7 +36,7 @@ mod tests {
     use regex::Regex;
     use std::fs;
 
-    use crate::rust_code_formatter::try_format;
+    use crate::compiletime::rust_code_formatter::try_format;
 
     use super::*;
 

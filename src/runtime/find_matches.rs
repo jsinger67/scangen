@@ -1,4 +1,4 @@
-use regex_automata::Match;
+use crate::common::Match;
 
 use super::Regex;
 

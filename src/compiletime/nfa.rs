@@ -4,11 +4,12 @@
 
 use std::vec;
 
-use regex_automata::util::primitives::StateID;
 use regex_syntax::ast::Ast;
 
+use super::StateID;
+
 #[derive(Debug, Clone, Default)]
-pub struct Nfa {
+pub(crate) struct Nfa {
     pub(crate) pattern: String,
     pub(crate) states: Vec<NfaState>,
     // Used during NFA construction
@@ -82,7 +83,7 @@ impl Nfa {
     }
 
     pub(crate) fn new_state(&mut self) -> StateID {
-        let state = StateID::new_unchecked(self.states.len());
+        let state = StateID::new(self.states.len());
         self.add_state(NfaState::new(state));
         state
     }
@@ -92,8 +93,8 @@ impl Nfa {
         for state in self.states.iter_mut() {
             state.offset(offset);
         }
-        self.start_state = StateID::new_unchecked(self.start_state.as_usize() + offset);
-        self.end_state = StateID::new_unchecked(self.end_state.as_usize() + offset);
+        self.start_state = StateID::new(self.start_state.as_usize() + offset);
+        self.end_state = StateID::new(self.end_state.as_usize() + offset);
         (self.start_state, self.end_state)
     }
 
@@ -251,14 +252,13 @@ impl NfaState {
 
     /// Apply an offset to every state number.
     pub(crate) fn offset(&mut self, offset: usize) {
-        self.state = StateID::new_unchecked(self.state.as_usize() + offset);
+        self.state = StateID::new(self.state.as_usize() + offset);
         for transition in self.transitions.iter_mut() {
-            transition.target_state =
-                StateID::new_unchecked(transition.target_state.as_usize() + offset);
+            transition.target_state = StateID::new(transition.target_state.as_usize() + offset);
         }
         for epsilon_transition in self.epsilon_transitions.iter_mut() {
             epsilon_transition.target_state =
-                StateID::new_unchecked(epsilon_transition.target_state.as_usize() + offset);
+                StateID::new(epsilon_transition.target_state.as_usize() + offset);
         }
     }
 }
@@ -303,7 +303,7 @@ impl From<StateID> for EpsilonTransition {
 
 #[cfg(test)]
 mod tests {
-    use crate::{nfa_render_to, parser::parse_regex_syntax};
+    use crate::{compiletime::parse_regex_syntax, nfa_render_to};
 
     use super::*;
 

@@ -1,4 +1,4 @@
-use regex_automata::{Match, PatternID};
+use crate::common::Match;
 
 use crate::DfaData;
 
@@ -80,7 +80,7 @@ impl Regex {
                         && span.len() > current_match.unwrap().span().len()
                 {
                     // We have a match and we continue the look for a longer match.
-                    current_match = Some(Match::new(PatternID::new_unchecked(pattern), span));
+                    current_match = Some(Match::new(pattern, span));
                 }
             }
         }

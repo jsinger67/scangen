@@ -2,7 +2,10 @@
 
 use regex_syntax::ast::{Ast, RepetitionKind, RepetitionRange};
 
-use crate::{nfa::Nfa, unsupported, Result, ScanGenError};
+use crate::{
+    compiletime::{nfa::Nfa, Result, ScanGenError},
+    unsupported,
+};
 
 impl TryFrom<Ast> for Nfa {
     type Error = ScanGenError;

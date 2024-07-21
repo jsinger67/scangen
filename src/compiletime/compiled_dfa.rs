@@ -1,14 +1,16 @@
 #![allow(dead_code)]
 
-use regex_automata::{util::primitives::StateID, Span};
 use regex_syntax::ast::Ast;
 
 use crate::{
-    character_class::{CharClassID, ComparableAst},
-    dfa::Dfa,
-    match_function::MatchFunction,
-    MatchingState, Result, ScanGenError,
+    common::{MatchingState, Span},
+    compiletime::{
+        character_class::ComparableAst, dfa::Dfa, match_function::MatchFunction, Result,
+        ScanGenError,
+    },
 };
+
+use super::{CharClassID, StateID};
 
 /// A compiled DFA that can be used to match a string.
 ///
@@ -19,7 +21,7 @@ use crate::{
 /// MatchFunctions are not Clone nor Copy, so we aggregate them into a new struct CompiledDfa
 /// which is Clone and Copy neither.
 #[derive(Default)]
-pub struct CompiledDfa {
+pub(crate) struct CompiledDfa {
     /// The pattern matched by the DFA.
     pattern: String,
     /// The accepting states of the DFA as well as the corresponding pattern id.
