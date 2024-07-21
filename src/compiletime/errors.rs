@@ -3,16 +3,6 @@ use thiserror::Error;
 /// The result type for the `scangen` crate.
 pub type Result<T> = std::result::Result<T, ScanGenError>;
 
-/// A macro that constructs a new ScanGenError::UnsupportedFeature variant.
-#[macro_export]
-macro_rules! unsupported {
-    ($feature:expr) => {
-        ScanGenError::new($crate::ScanGenErrorKind::UnsupportedFeature(
-            $feature.to_string(),
-        ))
-    };
-}
-
 /// The error type for the `scangen` crate.
 #[derive(Error, Debug)]
 pub struct ScanGenError {

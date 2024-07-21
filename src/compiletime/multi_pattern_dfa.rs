@@ -1,8 +1,16 @@
 use regex_syntax::ast::Ast;
 
-use crate::{unsupported, Result, ScanGenError, ScanGenErrorKind};
+use crate::{Result, ScanGenError, ScanGenErrorKind};
 
 use super::{compiled_dfa::CompiledDfa, dfa::Dfa, MatchFunction, MultiPatternNfa};
+
+macro_rules! unsupported {
+    ($feature:expr) => {
+        ScanGenError::new($crate::ScanGenErrorKind::UnsupportedFeature(
+            $feature.to_string(),
+        ))
+    };
+}
 
 /// The `MultiPatternDfa` struct represents a multi-pattern DFA.
 /// The `MultiPatternDfa` struct can be used to match multiple patterns in parallel.

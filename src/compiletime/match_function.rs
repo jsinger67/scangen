@@ -6,7 +6,15 @@ use regex_syntax::ast::{
     Literal,
 };
 
-use crate::{unsupported, Result, ScanGenError};
+use crate::{Result, ScanGenError};
+
+macro_rules! unsupported {
+    ($feature:expr) => {
+        ScanGenError::new($crate::ScanGenErrorKind::UnsupportedFeature(
+            $feature.to_string(),
+        ))
+    };
+}
 
 /// A function that takes a character and returns a boolean.
 pub(crate) struct MatchFunction(pub(crate) Box<dyn Fn(char) -> bool + 'static>);

@@ -1,12 +1,20 @@
 use std::collections::BTreeMap;
 
-use crate::{unsupported, Result, ScanGenError, ScanGenErrorKind};
+use crate::{Result, ScanGenError, ScanGenErrorKind};
 
 use super::{
     character_class::ComparableAst,
     nfa::{EpsilonTransition, Nfa},
     parse_regex_syntax, CharClassID, CharacterClass, PatternID, StateID,
 };
+
+macro_rules! unsupported {
+    ($feature:expr) => {
+        ScanGenError::new($crate::ScanGenErrorKind::UnsupportedFeature(
+            $feature.to_string(),
+        ))
+    };
+}
 
 /// A NFA that can match multiple patterns in parallel.
 #[derive(Debug, Default)]
@@ -273,9 +281,15 @@ impl MultiNfaTransition {
 
 #[cfg(test)]
 mod tests {
-    use crate::multi_nfa_render_to;
-
     use super::*;
+
+    /// A macro that simplifies the rendering of a dot file for a multi-pattern NFA.
+    macro_rules! multi_nfa_render_to {
+        ($nfa:expr, $label:expr) => {
+            let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
+            $crate::compiletime::dot::multi_nfa_render($nfa, $label, &mut f);
+        };
+    }
 
     // Initialize the logger for the tests
     fn init() {

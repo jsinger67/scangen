@@ -1,3 +1,7 @@
+/// Module with error definitions
+mod errors;
+pub use errors::{Result, ScanGenError, ScanGenErrorKind};
+
 /// Module for sevearl ID types.
 mod ids;
 pub(crate) use ids::{CharClassID, PatternID, StateID};
@@ -19,10 +23,6 @@ mod ast;
 
 /// Module with conversion to graphviz dot format
 mod dot;
-
-/// Module with error definitions
-mod errors;
-pub use errors::{Result, ScanGenError, ScanGenErrorKind};
 
 /// Module that provides a type for a multi-pattern NFA
 /// that can be used to match multiple patterns in parallel.

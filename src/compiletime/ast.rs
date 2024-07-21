@@ -2,10 +2,15 @@
 
 use regex_syntax::ast::{Ast, RepetitionKind, RepetitionRange};
 
-use crate::{
-    compiletime::{nfa::Nfa, Result, ScanGenError},
-    unsupported,
-};
+use crate::compiletime::{nfa::Nfa, Result, ScanGenError};
+
+macro_rules! unsupported {
+    ($feature:expr) => {
+        ScanGenError::new($crate::ScanGenErrorKind::UnsupportedFeature(
+            $feature.to_string(),
+        ))
+    };
+}
 
 impl TryFrom<Ast> for Nfa {
     type Error = ScanGenError;

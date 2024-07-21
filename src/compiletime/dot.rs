@@ -1,5 +1,5 @@
 //! The `dot` module contains the conversion from an NFA to a graphviz dot format.
-//! The functions and macros in this module are used for testing and debugging purposes.
+//! The functions in this module are used for testing and debugging purposes.
 
 use std::io::Write;
 
@@ -7,36 +7,9 @@ use dot_writer::{Attributes, DotWriter, RankDirection};
 
 use super::{dfa::Dfa, nfa::Nfa, MultiPatternNfa, StateID};
 
-/// A macro that simplifies the rendering of a dot file for a NFA.
-#[macro_export]
-macro_rules! nfa_render_to {
-    ($nfa:expr, $label:expr) => {
-        let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        $crate::compiletime::dot::nfa_render_to($nfa, $label, &mut f);
-    };
-}
-
-/// A macro that simplifies the rendering of a dot file for a multi-pattern NFA.
-#[macro_export]
-macro_rules! multi_nfa_render_to {
-    ($nfa:expr, $label:expr) => {
-        let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        $crate::compiletime::dot::multi_nfa_render_to($nfa, $label, &mut f);
-    };
-}
-
-/// A macro that simplifies the rendering of a dot file for a DFA.
-#[macro_export]
-macro_rules! dfa_render_to {
-    ($nfa:expr, $label:expr) => {
-        let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
-        $crate::compiletime::dot::dfa_render_to($nfa, $label, &mut f);
-    };
-}
-
 /// Render the NFA to a graphviz dot format.
 #[allow(dead_code)]
-pub(crate) fn nfa_render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
+pub(crate) fn nfa_render<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();
@@ -86,7 +59,7 @@ pub(crate) fn nfa_render_to<W: Write>(nfa: &Nfa, label: &str, output: &mut W) {
 
 /// Render the multi-pattern NFA to a graphviz dot format.
 #[allow(dead_code)]
-pub(crate) fn multi_nfa_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mut W) {
+pub(crate) fn multi_nfa_render<W: Write>(nfa: &MultiPatternNfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();
@@ -150,7 +123,7 @@ pub(crate) fn multi_nfa_render_to<W: Write>(nfa: &MultiPatternNfa, label: &str, 
 
 /// Render a DFA to a graphviz dot format.
 #[allow(dead_code)]
-pub(crate) fn dfa_render_to<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
+pub(crate) fn dfa_render<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
     let mut writer = DotWriter::from(output);
     writer.set_pretty_print(true);
     let mut digraph = writer.digraph();

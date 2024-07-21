@@ -303,14 +303,20 @@ impl From<StateID> for EpsilonTransition {
 
 #[cfg(test)]
 mod tests {
-    use crate::{compiletime::parse_regex_syntax, nfa_render_to};
-
     use super::*;
+
+    /// A macro that simplifies the rendering of a dot file for a NFA.
+    macro_rules! nfa_render_to {
+        ($nfa:expr, $label:expr) => {
+            let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
+            $crate::compiletime::dot::nfa_render($nfa, $label, &mut f);
+        };
+    }
 
     #[test]
     fn test_nfa_from_ast() {
         // Create an example AST
-        let ast = parse_regex_syntax("a").unwrap();
+        let ast = crate::compiletime::parse_regex_syntax("a").unwrap();
 
         // Convert the AST to an NFA
         let nfa: Nfa = ast.try_into().unwrap();
@@ -324,7 +330,10 @@ mod tests {
     #[test]
     fn test_nfa_from_ast_concat() {
         // Create an example AST and convert the AST to an NFA
-        let nfa: Nfa = parse_regex_syntax("ab").unwrap().try_into().unwrap();
+        let nfa: Nfa = crate::compiletime::parse_regex_syntax("ab")
+            .unwrap()
+            .try_into()
+            .unwrap();
 
         nfa_render_to!(&nfa, "ab");
 
@@ -337,8 +346,14 @@ mod tests {
     #[test]
     fn test_nfa_concat() {
         // Create two example ASTs and convert them to an NFAs
-        let mut nfa1: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
-        let nfa2: Nfa = parse_regex_syntax("b").unwrap().try_into().unwrap();
+        let mut nfa1: Nfa = crate::compiletime::parse_regex_syntax("a")
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let nfa2: Nfa = crate::compiletime::parse_regex_syntax("b")
+            .unwrap()
+            .try_into()
+            .unwrap();
         nfa1.concat(nfa2);
 
         // Add assertions here to validate the NFA
@@ -350,8 +365,14 @@ mod tests {
     #[test]
     fn test_nfa_alternation() {
         // Create two example ASTs and convert them to an NFAs
-        let mut nfa1: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
-        let nfa2: Nfa = parse_regex_syntax("b").unwrap().try_into().unwrap();
+        let mut nfa1: Nfa = crate::compiletime::parse_regex_syntax("a")
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let nfa2: Nfa = crate::compiletime::parse_regex_syntax("b")
+            .unwrap()
+            .try_into()
+            .unwrap();
         nfa1.alternation(nfa2);
 
         nfa_render_to!(&nfa1, "a_or_b");
@@ -365,7 +386,10 @@ mod tests {
     #[test]
     fn test_nfa_repetition() {
         // Create an example AST and convert the AST to an NFA
-        let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
+        let mut nfa: Nfa = crate::compiletime::parse_regex_syntax("a")
+            .unwrap()
+            .try_into()
+            .unwrap();
         nfa.zero_or_more();
 
         nfa_render_to!(&nfa, "a_many");
@@ -379,7 +403,10 @@ mod tests {
     #[test]
     fn test_nfa_zero_or_one() {
         // Create an example AST and convert the AST to an NFA
-        let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
+        let mut nfa: Nfa = crate::compiletime::parse_regex_syntax("a")
+            .unwrap()
+            .try_into()
+            .unwrap();
         nfa.zero_or_one();
 
         nfa_render_to!(&nfa, "a_zero_or_one");
@@ -393,7 +420,10 @@ mod tests {
     #[test]
     fn test_nfa_one_or_more() {
         // Create an example AST and convert the AST to an NFA
-        let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
+        let mut nfa: Nfa = crate::compiletime::parse_regex_syntax("a")
+            .unwrap()
+            .try_into()
+            .unwrap();
         nfa.one_or_more();
 
         nfa_render_to!(&nfa, "a_one_or_more");
@@ -407,7 +437,10 @@ mod tests {
     #[test]
     fn test_nfa_zero_or_more() {
         // Create an example AST and convert the AST to an NFA
-        let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
+        let mut nfa: Nfa = crate::compiletime::parse_regex_syntax("a")
+            .unwrap()
+            .try_into()
+            .unwrap();
         nfa.zero_or_more();
 
         nfa_render_to!(&nfa, "a_zero_or_more");
@@ -421,7 +454,10 @@ mod tests {
     #[test]
     fn test_complex_nfa() {
         // Create an example AST and convert the AST to an NFA
-        let nfa: Nfa = parse_regex_syntax("(a|b)*abb").unwrap().try_into().unwrap();
+        let nfa: Nfa = crate::compiletime::parse_regex_syntax("(a|b)*abb")
+            .unwrap()
+            .try_into()
+            .unwrap();
 
         nfa_render_to!(&nfa, "complex");
 
@@ -434,7 +470,10 @@ mod tests {
     #[test]
     fn test_nfa_offset_states() {
         // Create an example AST and convert the AST to an NFA
-        let mut nfa: Nfa = parse_regex_syntax("a").unwrap().try_into().unwrap();
+        let mut nfa: Nfa = crate::compiletime::parse_regex_syntax("a")
+            .unwrap()
+            .try_into()
+            .unwrap();
         nfa.shift_ids(10);
 
         // Add assertions here to validate the NFA
@@ -446,7 +485,10 @@ mod tests {
     #[test]
     fn test_nfa_repetition_at_least() {
         // Create an example AST and convert the AST to an NFA
-        let nfa: Nfa = parse_regex_syntax("a{3,}").unwrap().try_into().unwrap();
+        let nfa: Nfa = crate::compiletime::parse_regex_syntax("a{3,}")
+            .unwrap()
+            .try_into()
+            .unwrap();
 
         nfa_render_to!(&nfa, "a_at_least_3");
 
@@ -459,7 +501,10 @@ mod tests {
     #[test]
     fn test_nfa_repetition_bounded() {
         // Create an example AST and convert the AST to an NFA
-        let nfa: Nfa = parse_regex_syntax("a{3,5}").unwrap().try_into().unwrap();
+        let nfa: Nfa = crate::compiletime::parse_regex_syntax("a{3,5}")
+            .unwrap()
+            .try_into()
+            .unwrap();
 
         nfa_render_to!(&nfa, "a_bounded_3_5");
 
@@ -473,7 +518,7 @@ mod tests {
     #[test]
     fn test_character_class_expression() {
         // Create an example AST and convert the AST to an NFA
-        let nfa: Nfa = parse_regex_syntax(r"[[:digit:]]")
+        let nfa: Nfa = crate::compiletime::parse_regex_syntax(r"[[:digit:]]")
             .unwrap()
             .try_into()
             .unwrap();
