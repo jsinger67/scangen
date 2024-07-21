@@ -190,3 +190,28 @@ pub(crate) fn create_find_iter<'r, 'h>(
     regex.find_iter(input, matches_char_class)
 }
 ```
+
+You can use the generated scanner in your code like this:
+```rust
+use crate::scanner::{create_find_iter, create_regex};
+mod scanner;
+
+fn main() {
+    if args().len() != 2 {
+        eprintln!("Usage: {} filename", args().next().unwrap());
+        std::process::exit(1);
+    }
+    let file_name = args().nth(1).unwrap();
+
+    let input = std::fs::read_to_string(file_name.clone()).unwrap();
+    let mut regex = create_regex();
+    let find_iter = create_find_iter(&mut regex, &input);
+
+    let mut count = 0;
+    for ma in find_iter {
+        count += 1;
+        println!("Match: {:?}: '{}'", ma, &input[ma.start()..ma.end()]);
+    }
+    println!("Found {} tokens", count);
+}
+```
