@@ -33,8 +33,8 @@ impl TransitionsToPartitionGroups {
 pub(crate) struct Dfa {
     // The states of the DFA. The start state is always the first state in the vector, i.e. state 0.
     states: Vec<DfaState>,
-    // The patterns for the accepting states.
-    patterns: Vec<String>,
+    // The pattern for the accepting states.
+    pattern: Vec<String>,
     // The accepting states of the DFA as well as the corresponding pattern id.
     accepting_states: BTreeMap<StateID, PatternID>,
     // The character classes used in the DFA.
@@ -49,9 +49,9 @@ impl Dfa {
         &self.states
     }
 
-    /// Get the patterns for the accepting states.
-    pub(crate) fn patterns(&self) -> &[String] {
-        &self.patterns
+    /// Get the pattern for the accepting states.
+    pub(crate) fn pattern(&self) -> &[String] {
+        &self.pattern
     }
 
     /// Get the accepting states of the DFA.
@@ -80,13 +80,13 @@ impl Dfa {
     fn try_from_nfa(nfa: MultiPatternNfa) -> Result<Self> {
         let MultiPatternNfa {
             nfa,
-            patterns,
+            pattern,
             accepting_states,
             char_classes,
         } = nfa;
         let mut dfa = Dfa {
             states: Vec::new(),
-            patterns,
+            pattern,
             accepting_states: BTreeMap::new(),
             char_classes,
             transitions: BTreeMap::new(),
@@ -327,7 +327,7 @@ impl Dfa {
     fn create_from_partition(&self, partition: &[StateGroup]) -> Result<Dfa> {
         let mut dfa = Dfa {
             states: Vec::new(),
-            patterns: self.patterns.clone(),
+            pattern: self.pattern.clone(),
             accepting_states: BTreeMap::new(),
             char_classes: self.char_classes.clone(),
             transitions: self.transitions.clone(),
@@ -437,8 +437,8 @@ impl std::fmt::Display for Dfa {
         for state in &self.states {
             writeln!(f, "{:?}", state)?;
         }
-        writeln!(f, "Patterns:")?;
-        for pattern in &self.patterns {
+        writeln!(f, "Pattern:")?;
+        for pattern in &self.pattern {
             writeln!(f, "{}", pattern)?;
         }
         writeln!(f, "Accepting states:")?;
@@ -527,7 +527,7 @@ mod tests {
 
     use super::*;
 
-    const PATTERNS: &[&str] = &[
+    const PATTERN: &[&str] = &[
         "\\r\\n|\\r|\\n",
         "[\\s--\\r\\n]+",
         "(//.*(\\r\\n|\\r|\\n))",
@@ -580,7 +580,7 @@ mod tests {
     // A data type that provides test data for the DFA minimization tests.
     struct TestData {
         name: &'static str,
-        patterns: &'static [&'static str],
+        pattern: &'static [&'static str],
         states: usize,
         accepting_states: usize,
         char_classes: usize,
@@ -592,7 +592,7 @@ mod tests {
     const TEST_DATA: &[TestData] = &[
         TestData {
             name: "parol",
-            patterns: PATTERNS,
+            pattern: PATTERN,
             states: 154,
             accepting_states: 45,
             char_classes: 50,
@@ -601,7 +601,7 @@ mod tests {
         },
         TestData {
             name: "sym_spec",
-            patterns: PATTERNS_2,
+            pattern: PATTERNS_2,
             states: 107,
             accepting_states: 37,
             char_classes: 23,
@@ -610,7 +610,7 @@ mod tests {
         },
         TestData {
             name: "dragon",
-            patterns: &["(a|b)*abb"],
+            pattern: &["(a|b)*abb"],
             states: 5,
             accepting_states: 1,
             char_classes: 2,
@@ -619,7 +619,7 @@ mod tests {
         },
         TestData {
             name: "in_int",
-            patterns: &["in", "int"],
+            pattern: &["in", "int"],
             states: 4,
             accepting_states: 2,
             char_classes: 3,
@@ -628,7 +628,7 @@ mod tests {
         },
         TestData {
             name: "bounds",
-            patterns: &["a{1,2}b{2,}c{3}"],
+            pattern: &["a{1,2}b{2,}c{3}"],
             states: 9,
             accepting_states: 1,
             char_classes: 3,
@@ -638,7 +638,7 @@ mod tests {
         // "[A-Z][a-z]*([ ][A-Z][a-z]*)*[ ][A-Z][A-Z]"
         TestData {
             name: "city_and_state",
-            patterns: &["[A-Z][a-z]*([ ][A-Z][a-z]*)*[ ][A-Z][A-Z]"],
+            pattern: &["[A-Z][a-z]*([ ][A-Z][a-z]*)*[ ][A-Z][A-Z]"],
             states: 7,
             accepting_states: 1,
             char_classes: 3,
@@ -666,7 +666,7 @@ mod tests {
         dfa_render_to!(&dfa, "dfa_from_nfa");
 
         assert_eq!(dfa.states().len(), 9);
-        assert_eq!(dfa.patterns().len(), 2);
+        assert_eq!(dfa.pattern().len(), 2);
         assert_eq!(dfa.accepting_states().len(), 4);
         assert_eq!(dfa.char_classes().len(), 2);
     }
@@ -684,7 +684,7 @@ mod tests {
         dfa_render_to!(&dfa, "dfa_from_nfa_2");
 
         assert_eq!(dfa.states().len(), 4);
-        assert_eq!(dfa.patterns().len(), 2);
+        assert_eq!(dfa.pattern().len(), 2);
         assert_eq!(dfa.accepting_states().len(), 2);
         assert_eq!(dfa.char_classes().len(), 3);
     }
@@ -693,7 +693,7 @@ mod tests {
     fn test_dfa_from_nfa_3() {
         let mut multi_pattern_nfa = MultiPatternNfa::new();
 
-        let result = multi_pattern_nfa.add_patterns(PATTERNS);
+        let result = multi_pattern_nfa.add_patterns(PATTERN);
         if let Err(e) = result {
             panic!("Error: {}", e);
         }
@@ -703,7 +703,7 @@ mod tests {
         dfa_render_to!(&dfa, "dfa_from_nfa_3");
 
         assert_eq!(dfa.states().len(), 154);
-        assert_eq!(dfa.patterns().len(), 40);
+        assert_eq!(dfa.pattern().len(), 40);
         assert_eq!(dfa.accepting_states().len(), 45);
         assert_eq!(dfa.char_classes().len(), 50);
     }
@@ -716,7 +716,7 @@ mod tests {
         for data in TEST_DATA {
             let mut multi_pattern_nfa = MultiPatternNfa::new();
 
-            let result = multi_pattern_nfa.add_patterns(data.patterns);
+            let result = multi_pattern_nfa.add_patterns(data.pattern);
             if let Err(e) = result {
                 panic!("Error: {}", e);
             }
@@ -727,9 +727,9 @@ mod tests {
 
             assert_eq!(dfa.states().len(), data.states, "states of {}", data.name);
             assert_eq!(
-                dfa.patterns().len(),
-                data.patterns.len(),
-                "patterns {}",
+                dfa.pattern().len(),
+                data.pattern.len(),
+                "pattern {}",
                 data.name
             );
             assert_eq!(
@@ -755,8 +755,8 @@ mod tests {
                 data.name
             );
             assert_eq!(
-                minimized_dfa.patterns().len(),
-                data.patterns.len(),
+                minimized_dfa.pattern().len(),
+                data.pattern.len(),
                 "min_patterns of {}",
                 data.name
             );

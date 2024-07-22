@@ -84,7 +84,7 @@ pub(crate) fn multi_nfa_render<W: Write>(nfa: &MultiPatternNfa, label: &str, out
                     .set_label(&format!(
                         "{}\n'{}':{}",
                         state.id().as_usize(),
-                        nfa.patterns()[pattern_id.as_usize()].escape_default(),
+                        nfa.pattern()[pattern_id.as_usize()].escape_default(),
                         pattern_id.as_usize(),
                     ));
             }
@@ -147,7 +147,7 @@ pub(crate) fn dfa_render<W: Write>(dfa: &Dfa, label: &str, output: &mut W) {
                 .set_label(&format!(
                     "{}\n'{}':{}",
                     state_id,
-                    dfa.patterns()[pattern_id.as_usize()].escape_default(),
+                    dfa.pattern()[pattern_id.as_usize()].escape_default(),
                     pattern_id.as_usize(),
                 ));
         }

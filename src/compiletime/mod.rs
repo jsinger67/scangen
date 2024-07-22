@@ -25,12 +25,12 @@ mod ast;
 mod dot;
 
 /// Module that provides a type for a multi-pattern NFA
-/// that can be used to match multiple patterns in parallel.
+/// that can be used to match multiple pattern in parallel.
 mod multi_pattern_nfa;
 pub(crate) use multi_pattern_nfa::MultiPatternNfa;
 
 /// Module that provides a type for a multi-pattern DFA
-/// that can be used to match multiple patterns in parallel.
+/// that can be used to match multiple pattern in parallel.
 mod multi_pattern_dfa;
 pub(crate) use multi_pattern_dfa::MultiPatternDfa;
 

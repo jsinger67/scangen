@@ -1,6 +1,6 @@
 #![allow(clippy::manual_is_ascii_check)]
 
-use scangen::{Dfa, DfaData, FindMatches, Regex};
+use scangen::{Dfa, DfaData, FindMatches, Scanner};
 
 const DFAS: &[DfaData; 40] = &[
     /* 0 */
@@ -602,14 +602,14 @@ fn matches_char_class(c: char, char_class: usize) -> bool {
     }
 }
 
-pub(crate) fn create_regex() -> Regex {
+pub(crate) fn create_scanner() -> Scanner {
     let dfas: Vec<Dfa> = DFAS.iter().map(|dfa| dfa.into()).collect();
-    Regex { dfas }
+    Scanner { dfas }
 }
 
 pub(crate) fn create_find_iter<'r, 'h>(
-    regex: &'r mut Regex,
+    scanner: &'r mut Scanner,
     input: &'h str,
 ) -> FindMatches<'r, 'h> {
-    regex.find_iter(input, matches_char_class)
+    scanner.find_iter(input, matches_char_class)
 }

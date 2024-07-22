@@ -16,11 +16,11 @@ macro_rules! unsupported {
     };
 }
 
-/// A NFA that can match multiple patterns in parallel.
+/// A NFA that can match multiple pattern in parallel.
 #[derive(Debug, Default)]
 pub(crate) struct MultiPatternNfa {
     pub(crate) nfa: NfaWithCharClasses,
-    pub(crate) patterns: Vec<String>,
+    pub(crate) pattern: Vec<String>,
     pub(crate) accepting_states: BTreeMap<StateID, PatternID>,
     pub(crate) char_classes: Vec<CharacterClass>,
 }
@@ -30,7 +30,7 @@ impl MultiPatternNfa {
     pub fn new() -> Self {
         Self {
             nfa: NfaWithCharClasses::new(),
-            patterns: Vec::new(),
+            pattern: Vec::new(),
             accepting_states: BTreeMap::new(),
             char_classes: Vec::new(),
         }
@@ -41,9 +41,9 @@ impl MultiPatternNfa {
         &self.nfa
     }
 
-    /// Get an immutable reference of the patterns.
-    pub fn patterns(&self) -> &[String] {
-        &self.patterns
+    /// Get an immutable reference of the pattern.
+    pub fn pattern(&self) -> &[String] {
+        &self.pattern
     }
 
     /// Get the accepting states.
@@ -58,16 +58,16 @@ impl MultiPatternNfa {
 
     /// Add a pattern to the multi-pattern NFA.
     pub fn add_pattern(&mut self, pattern: &str) -> Result<PatternID> {
-        if let Some(id) = self.patterns.iter().position(|p| p == pattern) {
+        if let Some(id) = self.pattern.iter().position(|p| p == pattern) {
             // If the pattern already exists, return the terminal id
             // Not sure if this should rather be an error
             return Ok(PatternID::new(id));
         }
 
-        let pattern_id = PatternID::new(self.patterns.len());
+        let pattern_id = PatternID::new(self.pattern.len());
         let mut nfa: Nfa = parse_regex_syntax(pattern)?.try_into()?;
         nfa.set_pattern(pattern);
-        self.patterns.push(pattern.to_string());
+        self.pattern.push(pattern.to_string());
 
         // Shift the state ids of the given NFA
         nfa.shift_ids(self.nfa.states().len());
@@ -87,14 +87,14 @@ impl MultiPatternNfa {
         Ok(pattern_id)
     }
 
-    /// Add multiple patterns to the multi-pattern NFA.
+    /// Add multiple pattern to the multi-pattern NFA.
     #[allow(dead_code)]
-    pub fn add_patterns<I, S>(&mut self, patterns: I) -> Result<()>
+    pub fn add_patterns<I, S>(&mut self, pattern: I) -> Result<()>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        for (index, pattern) in patterns.into_iter().enumerate() {
+        for (index, pattern) in pattern.into_iter().enumerate() {
             let result = self.add_pattern(pattern.as_ref()).map(|_| ());
             if let Err(ScanGenError { source }) = &result {
                 match &**source {
@@ -302,7 +302,7 @@ mod tests {
 
         let mut multi_pattern_nfa = MultiPatternNfa::new();
         let pattern_id = multi_pattern_nfa.add_pattern("a").unwrap();
-        assert_eq!(multi_pattern_nfa.patterns(), &["a".to_string()]);
+        assert_eq!(multi_pattern_nfa.pattern(), &["a".to_string()]);
         assert_eq!(
             multi_pattern_nfa.accepting_states(),
             &[(StateID::new(2), pattern_id)].iter().cloned().collect()
@@ -312,7 +312,7 @@ mod tests {
 
         let pattern_id = multi_pattern_nfa.add_pattern("b").unwrap();
         assert_eq!(
-            multi_pattern_nfa.patterns(),
+            multi_pattern_nfa.pattern(),
             &["a".to_string(), "b".to_string()]
         );
 

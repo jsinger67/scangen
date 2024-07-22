@@ -8,18 +8,18 @@ use std::time::Instant;
 /// Generate code from the regex syntax.
 /// The function returns an error if the regex syntax is invalid.
 /// # Arguments
-/// * `patterns` - A slice of string slices that holds the regex syntax patterns.
+/// * `pattern` - A slice of string slices that holds the regex syntax pattern.
 /// # Returns
 /// A `Result` of type `()` that represents the success.
 /// # Errors
 /// An error is returned if the regex contains unsupported syntax.
 ///
 /// # Example
-pub fn generate_code(patterns: &[&str], output: &mut dyn std::io::Write) -> Result<()> {
+pub fn generate_code(pattern: &[&str], output: &mut dyn std::io::Write) -> Result<()> {
     let now = Instant::now();
 
     let mut multi_pattern_dfa = MultiPatternDfa::new();
-    multi_pattern_dfa.add_patterns(patterns)?;
+    multi_pattern_dfa.add_patterns(pattern)?;
 
     multi_pattern_dfa.generate_code(output)?;
 
@@ -33,15 +33,13 @@ pub fn generate_code(patterns: &[&str], output: &mut dyn std::io::Write) -> Resu
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::compiletime::rust_code_formatter::try_format;
     use regex::Regex;
     use std::fs;
 
-    use crate::compiletime::rust_code_formatter::try_format;
-
-    use super::*;
-
     // Pattern taken from parol
-    const PATTERNS: &[&str] = &[
+    const PATTERN: &[&str] = &[
         /* 0 */ "\\r\\n|\\r|\\n",
         /* 1 */ "[\\s--\\r\\n]+",
         /* 2 */ "(//.*(\\r\\n|\\r|\\n))",
@@ -90,7 +88,7 @@ mod tests {
             // Create a buffer to hold the generated code
             let mut out_file = fs::File::create("data/test_generate_code.rs").unwrap();
             // Generate the code
-            let result = generate_code(PATTERNS, &mut out_file);
+            let result = generate_code(PATTERN, &mut out_file);
             // Assert that the code generation was successful
             assert!(result.is_ok());
         }

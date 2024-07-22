@@ -79,7 +79,7 @@ error: unclosed character class"#
     #[test]
     #[should_panic(expected = "RegexSyntaxError(Error { kind: UnsupportedLookAround")]
     fn test_a_only_if_followed_by_b() {
-        // Regex syntax that matches 'a' only if it is followed by 'b'
+        // Scanner syntax that matches 'a' only if it is followed by 'b'
         let input = r"a(?=b)";
         let _ = parse_regex_syntax(input).unwrap();
     }

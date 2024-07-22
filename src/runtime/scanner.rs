@@ -10,12 +10,12 @@ use super::{Dfa, FindMatches};
 /// to a separate token the lexer/scanner can recognize.
 /// The DFAs are advanced in parallel to search for matches.
 #[derive(Debug)]
-pub struct Regex {
+pub struct Scanner {
     /// The DFAs that are used to search for matches.
     pub dfas: Vec<Dfa>,
 }
 
-impl Regex {
+impl Scanner {
     /// Returns an iterator over all non-overlapping matches.
     /// The iterator yields a [`Match`] value until no more matches could be found.
     pub fn find_iter<'r, 'h>(
@@ -88,9 +88,9 @@ impl Regex {
     }
 }
 
-impl From<&[DfaData]> for Regex {
+impl From<&[DfaData]> for Scanner {
     fn from(dfas: &[DfaData]) -> Self {
-        Regex {
+        Scanner {
             dfas: dfas.iter().map(Dfa::from).collect(),
         }
     }

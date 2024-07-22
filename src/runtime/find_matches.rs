@@ -1,6 +1,6 @@
 use crate::common::Match;
 
-use super::Regex;
+use super::Scanner;
 
 /// An iterator over all non-overlapping matches.
 ///
@@ -8,13 +8,13 @@ use super::Regex;
 ///
 /// The lifetime parameters are as follows:
 ///
-/// * `'r` represents the lifetime of the `Regex` that produced this iterator.
+/// * `'r` represents the lifetime of the `Scanner` that produced this iterator.
 /// * `'h` represents the lifetime of the haystack being searched.
 ///
-/// This iterator can be created with the [`Regex::find_iter`] method.
+/// This iterator can be created with the [`Scanner::find_iter`] method.
 #[derive(Debug)]
 pub struct FindMatches<'r, 'h> {
-    regex: &'r mut Regex,
+    scanner: &'r mut Scanner,
     char_indices: std::str::CharIndices<'h>,
     matches_char_class: fn(char, usize) -> bool,
 }
@@ -22,12 +22,12 @@ pub struct FindMatches<'r, 'h> {
 impl<'r, 'h> FindMatches<'r, 'h> {
     /// Creates a new `FindMatches` iterator.
     pub fn new(
-        regex: &'r mut Regex,
+        scanner: &'r mut Scanner,
         input: &'h str,
         matches_char_class: fn(char, usize) -> bool,
     ) -> Self {
         FindMatches {
-            regex,
+            scanner,
             char_indices: input.char_indices(),
             matches_char_class,
         }
@@ -39,7 +39,7 @@ impl<'r, 'h> FindMatches<'r, 'h> {
     #[inline]
     pub fn next_match(&mut self) -> Option<Match> {
         let mut result = self
-            .regex
+            .scanner
             .find_from(self.char_indices.clone(), self.matches_char_class);
         if let Some(matched) = result {
             // Advance the char_indices iterator to the end of the match.
@@ -50,7 +50,7 @@ impl<'r, 'h> FindMatches<'r, 'h> {
             // Advance the char_indices iterator by one character and try again.
             while self.char_indices.next().is_some() {
                 result = self
-                    .regex
+                    .scanner
                     .find_from(self.char_indices.clone(), self.matches_char_class);
                 if let Some(matched) = result {
                     // Advance the char_indices iterator to the end of the match.

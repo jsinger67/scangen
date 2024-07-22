@@ -13,10 +13,10 @@ macro_rules! unsupported {
 }
 
 /// The `MultiPatternDfa` struct represents a multi-pattern DFA.
-/// The `MultiPatternDfa` struct can be used to match multiple patterns in parallel.
+/// The `MultiPatternDfa` struct can be used to match multiple pattern in parallel.
 #[derive(Default)]
 pub(crate) struct MultiPatternDfa {
-    /// The DFAs that are used to match the patterns. Each DFA is used to match a single pattern.
+    /// The DFAs that are used to match the pattern. Each DFA is used to match a single pattern.
     dfas: Vec<CompiledDfa>,
     /// The match functions shared by all DFAs.
     match_functions: Vec<(Ast, MatchFunction)>,
@@ -27,13 +27,13 @@ impl MultiPatternDfa {
     pub fn new() -> Self {
         MultiPatternDfa::default()
     }
-    /// Returns the slice of Dfa objects that are used to match the patterns.
+    /// Returns the slice of Dfa objects that are used to match the pattern.
     #[allow(dead_code)]
     pub fn dfas(&self) -> &[CompiledDfa] {
         &self.dfas
     }
 
-    /// Returns the number of patterns that are matched by the `MultiPatternDfa`.
+    /// Returns the number of pattern that are matched by the `MultiPatternDfa`.
     #[allow(dead_code)]
     pub fn num_patterns(&self) -> usize {
         self.dfas.len()
@@ -67,13 +67,13 @@ impl MultiPatternDfa {
         Ok(())
     }
 
-    /// Add multiple patterns to the multi-pattern DFA.
-    pub fn add_patterns<I, S>(&mut self, patterns: I) -> Result<()>
+    /// Add multiple pattern to the multi-pattern DFA.
+    pub fn add_patterns<I, S>(&mut self, pattern: I) -> Result<()>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        for (index, pattern) in patterns.into_iter().enumerate() {
+        for (index, pattern) in pattern.into_iter().enumerate() {
             let result = self.add_pattern(pattern.as_ref()).map(|_| ());
             if let Err(ScanGenError { source }) = &result {
                 match &**source {
@@ -98,7 +98,7 @@ impl MultiPatternDfa {
             output,
             r"#![allow(clippy::manual_is_ascii_check)]
 
- use scangen::{{Dfa, DfaData, FindMatches, Regex}};
+ use scangen::{{Dfa, DfaData, FindMatches, Scanner}};
  
  "
         )?;
@@ -128,16 +128,16 @@ impl MultiPatternDfa {
             output,
             r"}}
 
-pub(crate) fn create_regex() -> Regex {{
+pub(crate) fn create_scanner() -> Scanner {{
     let dfas: Vec<Dfa> = DFAS.iter().map(|dfa| dfa.into()).collect();
-    Regex {{ dfas }}
+    Scanner {{ dfas }}
 }}
 
 pub(crate) fn create_find_iter<'r, 'h>(
-    regex: &'r mut Regex,
+    scanner: &'r mut Scanner,
     input: &'h str,
 ) -> FindMatches<'r, 'h> {{
-    regex.find_iter(input, matches_char_class)
+    scanner.find_iter(input, matches_char_class)
 }}
 "
         )?;

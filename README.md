@@ -23,21 +23,21 @@ This crate should fill eventually this gap.
 ## The approach
 
 The approach taken is to generate a source file that can be used as a module in another crate.
-The input for the generation is a slice of patterns where each represent a single token. The
+The input for the generation is a slice of pattern where each represent a single token. The
 pattern index the scanner returns in the match corresponds to the index in the pattern slice.
-The patterns in the given slice should be ordered by precedence, i.e. patterns with lower index
+The pattern in the given slice should be ordered by precedence, i.e. pattern with lower index
 have higher precedence if the match yields multiple results with the same length. This is pretty
 much the behavior of Lex/Flex.
 
 Internally the library converts each pattern in a NFA. The NFA is later converted into a DFA which
 itself is minimized afterwards. Each character or character class is treated as a character class
-eventually and they are shared over all DFAs in the resulting Regex (multi DFA). For each character
+eventually and they are shared over all DFAs in the resulting Scanner (multi DFA). For each character
 class a match function is generated. This approach frees the library from the necessity to include
 unicode tables and nevertheless providing basic unicode support.
 
 ## Guard rails
 
-* The generated scanners are character oriented, i.e. no `u8` support is intended. Patterns are
+* The generated scanners are character oriented, i.e. no `u8` support is intended. Pattern are
 `&[&str]` and the input is `&str`.
 * The generated scanner uses the `scangen` crate as a reference, so this dependency has to be added.
 Use the feature `runtime` when referencing this crate in the generated scanner.
@@ -66,7 +66,7 @@ code.
 use scangen::{generate_code, try_format};
 use std::fs;
 
-const PATTERNS: &[&str] = &[
+const PATTERN: &[&str] = &[
     /* 0 */ "\\r\\n|\\r|\\n",   // Newline
     /* 1 */ "[\\s--\\r\\n]+",   // Whitespace
     /* 2 */ "(//.*(\\r\\n|\\r|\\n))",   // Line comment
@@ -81,7 +81,7 @@ let file_name = "data/scanner.rs";
     // Create a buffer to hold the generated code
     let mut out_file = fs::File::create(file_name.clone()).expect("Failed to create file");
     // Generate the code
-    let result = generate_code(PATTERNS, &mut out_file);
+    let result = generate_code(PATTERN, &mut out_file);
     // Assert that the code generation was successful
     assert!(result.is_ok());
 }
@@ -95,7 +95,7 @@ The generated scanner looks like this:
 ```rust
 #![allow(clippy::manual_is_ascii_check)]
 
-use scangen::{Dfa, DfaData, FindMatches, Regex};
+use scangen::{Dfa, DfaData, FindMatches, Scanner};
 
 const DFAS: &[DfaData; 7] = &[
     /* 0 */
@@ -178,13 +178,13 @@ fn matches_char_class(c: char, char_class: usize) -> bool {
     }
 }
 
-pub(crate) fn create_regex() -> Regex {
+pub(crate) fn create_scanner() -> Scanner {
     let dfas: Vec<Dfa> = DFAS.iter().map(|dfa| dfa.into()).collect();
-    Regex { dfas }
+    Scanner { dfas }
 }
 
 pub(crate) fn create_find_iter<'r, 'h>(
-    regex: &'r mut Regex,
+    regex: &'r mut Scanner,
     input: &'h str,
 ) -> FindMatches<'r, 'h> {
     regex.find_iter(input, matches_char_class)
@@ -193,7 +193,7 @@ pub(crate) fn create_find_iter<'r, 'h>(
 
 You can use the generated scanner in your code like this:
 ```rust
-use crate::scanner::{create_find_iter, create_regex};
+use crate::scanner::{create_find_iter, create_scanner};
 mod scanner;
 
 fn main() {
@@ -204,7 +204,7 @@ fn main() {
     let file_name = args().nth(1).unwrap();
 
     let input = std::fs::read_to_string(file_name.clone()).unwrap();
-    let mut regex = create_regex();
+    let mut regex = create_scanner();
     let find_iter = create_find_iter(&mut regex, &input);
 
     let mut count = 0;

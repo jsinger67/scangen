@@ -50,8 +50,8 @@ impl CompiledDfa {
         match_functions: &mut Vec<(Ast, MatchFunction)>,
     ) -> Result<()> {
         // Set the pattern
-        debug_assert_eq!(dfa.patterns().len(), 1);
-        self.pattern = dfa.patterns()[0].to_string();
+        debug_assert_eq!(dfa.pattern().len(), 1);
+        self.pattern = dfa.pattern()[0].to_string();
         // Create the transitions vector as well as the state_ranges vector
         self.transitions.clear();
         self.state_ranges.clear();
