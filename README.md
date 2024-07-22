@@ -204,8 +204,8 @@ fn main() {
     let file_name = args().nth(1).unwrap();
 
     let input = std::fs::read_to_string(file_name.clone()).unwrap();
-    let mut regex = create_scanner();
-    let find_iter = create_find_iter(&mut regex, &input);
+    let mut scanner = create_scanner();
+    let find_iter = create_find_iter(&mut scanner, &input);
 
     let mut count = 0;
     for ma in find_iter {
