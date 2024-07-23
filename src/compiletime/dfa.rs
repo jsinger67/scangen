@@ -527,7 +527,7 @@ mod tests {
 
     use super::*;
 
-    const PATTERN: &[&str] = &[
+    const TERMINALS: &[&str] = &[
         "\\r\\n|\\r|\\n",
         "[\\s--\\r\\n]+",
         "(//.*(\\r\\n|\\r|\\n))",
@@ -592,7 +592,7 @@ mod tests {
     const TEST_DATA: &[TestData] = &[
         TestData {
             name: "parol",
-            pattern: PATTERN,
+            pattern: TERMINALS,
             states: 154,
             accepting_states: 45,
             char_classes: 50,
@@ -693,7 +693,7 @@ mod tests {
     fn test_dfa_from_nfa_3() {
         let mut multi_pattern_nfa = MultiPatternNfa::new();
 
-        let result = multi_pattern_nfa.add_patterns(PATTERN);
+        let result = multi_pattern_nfa.add_patterns(TERMINALS);
         if let Err(e) = result {
             panic!("Error: {}", e);
         }

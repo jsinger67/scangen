@@ -31,9 +31,12 @@ much the behavior of Lex/Flex.
 
 Internally the library converts each pattern in a NFA. The NFA is later converted into a DFA which
 itself is minimized afterwards. Each character or character class is treated as a character class
-eventually and they are shared over all DFAs in the resulting Scanner (multi DFA). For each character
-class a match function is generated. This approach frees the library from the necessity to include
-unicode tables and nevertheless providing basic unicode support.
+eventually and they are shared over all DFAs in the resulting Scanner (multi DFA). For each
+character class a match function is generated. This approach frees the library from the necessity to
+include unicode tables and nevertheless providing basic unicode support.
+
+Also, *multiple scanner modes* should be supported out of the box. They are known from Lex/Flex as
+[Start conditions](https://www.cs.princeton.edu/~appel/modern/c/software/flex/flex.html#SEC11).
 
 ## Guard rails
 
@@ -66,7 +69,7 @@ code.
 use scangen::{generate_code, try_format};
 use std::fs;
 
-const PATTERN: &[&str] = &[
+const TERMINALS: &[&str] = &[
     /* 0 */ "\\r\\n|\\r|\\n",   // Newline
     /* 1 */ "[\\s--\\r\\n]+",   // Whitespace
     /* 2 */ "(//.*(\\r\\n|\\r|\\n))",   // Line comment
@@ -81,7 +84,7 @@ let file_name = "data/scanner.rs";
     // Create a buffer to hold the generated code
     let mut out_file = fs::File::create(file_name.clone()).expect("Failed to create file");
     // Generate the code
-    let result = generate_code(PATTERN, &mut out_file);
+    let result = generate_code(TERMINALS, &mut out_file);
     // Assert that the code generation was successful
     assert!(result.is_ok());
 }
@@ -95,7 +98,7 @@ The generated scanner looks like this:
 ```rust
 #![allow(clippy::manual_is_ascii_check)]
 
-use scangen::{Dfa, DfaData, FindMatches, Scanner};
+use scangen::{DfaData, FindMatches, Scanner, ScannerBuilder};
 
 const DFAS: &[DfaData; 7] = &[
     /* 0 */
@@ -179,8 +182,9 @@ fn matches_char_class(c: char, char_class: usize) -> bool {
 }
 
 pub(crate) fn create_scanner() -> Scanner {
-    let dfas: Vec<Dfa> = DFAS.iter().map(|dfa| dfa.into()).collect();
-    Scanner { dfas }
+    let mut builder = ScannerBuilder::new();
+    builder.add_dfa_data(DFAS);
+    builder.build()
 }
 
 pub(crate) fn create_find_iter<'r, 'h>(

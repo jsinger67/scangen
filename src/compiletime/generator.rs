@@ -39,7 +39,7 @@ mod tests {
     use std::fs;
 
     // Pattern taken from parol
-    const PATTERN: &[&str] = &[
+    const TERMINALS: &[&str] = &[
         /* 0 */ "\\r\\n|\\r|\\n",
         /* 1 */ "[\\s--\\r\\n]+",
         /* 2 */ "(//.*(\\r\\n|\\r|\\n))",
@@ -88,7 +88,7 @@ mod tests {
             // Create a buffer to hold the generated code
             let mut out_file = fs::File::create("data/test_generate_code.rs").unwrap();
             // Generate the code
-            let result = generate_code(PATTERN, &mut out_file);
+            let result = generate_code(TERMINALS, &mut out_file);
             // Assert that the code generation was successful
             assert!(result.is_ok());
         }

@@ -98,7 +98,7 @@ impl MultiPatternDfa {
             output,
             r"#![allow(clippy::manual_is_ascii_check)]
 
- use scangen::{{Dfa, DfaData, FindMatches, Scanner}};
+ use scangen::{{DfaData, FindMatches, Scanner, ScannerBuilder}};
  
  "
         )?;
@@ -129,8 +129,9 @@ impl MultiPatternDfa {
             r"}}
 
 pub(crate) fn create_scanner() -> Scanner {{
-    let dfas: Vec<Dfa> = DFAS.iter().map(|dfa| dfa.into()).collect();
-    Scanner {{ dfas }}
+    let mut builder = ScannerBuilder::new();
+    builder.add_dfa_data(DFAS);
+    builder.build()
 }}
 
 pub(crate) fn create_find_iter<'r, 'h>(
