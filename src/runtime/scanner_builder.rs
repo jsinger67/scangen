@@ -1,4 +1,6 @@
-use super::{Dfa, DfaData, Scanner, ScannerMode, ScannerModeData};
+use crate::{DfaData, ScannerModeData};
+
+use super::{Dfa, Scanner, ScannerMode};
 
 /// A scanner builder is used to build a scanner.
 #[derive(Debug, Default)]

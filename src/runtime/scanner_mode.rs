@@ -1,12 +1,6 @@
-use super::Dfa;
+use crate::ScannerModeData;
 
-/// The data of a scanner mode generated as Rust code.
-pub type ScannerModeData = (
-    // The name of the scanner mode.
-    &'static str,
-    // The DFAs of the scanner mode bundled with their associated token type numbers.
-    &'static [(usize, usize)],
-);
+use super::Dfa;
 
 /// A ScannerMode is a set of active DFAs with their associated token type numbers.
 /// The DFAs are clones from the Scanner's `dfas` field for the sake of performance.
