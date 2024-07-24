@@ -1,3 +1,6 @@
+/// Module that provides data types for the generated code
+mod compiled_data;
+pub use compiled_data::{DfaData, ScannerModeData};
 /// Module that provides a Match type
 mod match_type;
 pub use match_type::Match;

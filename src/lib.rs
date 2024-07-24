@@ -43,7 +43,7 @@
 
 /// Module with common types and functions
 mod common;
-pub use common::{Match, Span};
+pub use common::{DfaData, Match, ScannerModeData, Span};
 
 /// Compiletime module
 #[cfg(feature = "generate")]
@@ -53,6 +53,4 @@ pub use compiletime::{generate_code, try_format, Result, ScanGenError, ScanGenEr
 /// Runtime module
 #[cfg(feature = "runtime")]
 mod runtime;
-pub use runtime::{
-    Dfa, DfaData, FindMatches, Scanner, ScannerBuilder, ScannerMode, ScannerModeData,
-};
+pub use runtime::{Dfa, FindMatches, Scanner, ScannerBuilder, ScannerMode};
