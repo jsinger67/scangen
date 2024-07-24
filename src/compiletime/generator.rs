@@ -1,7 +1,7 @@
 //! This module contains the source generator for the regex syntax.
 //! The source generator is used to generate code from the regex syntax.
 
-use crate::{compiletime::MultiPatternDfa, Result};
+use crate::{compiletime::MultiPatternDfa, Result, ScannerModeData};
 use log::trace;
 use std::time::Instant;
 
@@ -15,13 +15,17 @@ use std::time::Instant;
 /// An error is returned if the regex contains unsupported syntax.
 ///
 /// # Example
-pub fn generate_code(pattern: &[&str], output: &mut dyn std::io::Write) -> Result<()> {
+pub fn generate_code(
+    pattern: &[&str],
+    scanner_mode_data: &[ScannerModeData],
+    output: &mut dyn std::io::Write,
+) -> Result<()> {
     let now = Instant::now();
 
     let mut multi_pattern_dfa = MultiPatternDfa::new();
     multi_pattern_dfa.add_patterns(pattern)?;
 
-    multi_pattern_dfa.generate_code(output)?;
+    multi_pattern_dfa.generate_code(scanner_mode_data, output)?;
 
     let elapsed_time = now.elapsed();
     trace!(
@@ -88,7 +92,7 @@ mod tests {
             // Create a buffer to hold the generated code
             let mut out_file = fs::File::create("data/test_generate_code.rs").unwrap();
             // Generate the code
-            let result = generate_code(TERMINALS, &mut out_file);
+            let result = generate_code(TERMINALS, &[], &mut out_file);
             // Assert that the code generation was successful
             assert!(result.is_ok());
         }

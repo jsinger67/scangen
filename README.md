@@ -84,7 +84,7 @@ let file_name = "data/scanner.rs";
     // Create a buffer to hold the generated code
     let mut out_file = fs::File::create(file_name.clone()).expect("Failed to create file");
     // Generate the code
-    let result = generate_code(TERMINALS, &mut out_file);
+    let result = generate_code(TERMINALS, &[], &mut out_file);
     // Assert that the code generation was successful
     assert!(result.is_ok());
 }
@@ -98,7 +98,7 @@ The generated scanner looks like this:
 ```rust
 #![allow(clippy::manual_is_ascii_check)]
 
-use scangen::{DfaData, FindMatches, Scanner, ScannerBuilder};
+use scangen::{DfaData, FindMatches, Scanner, ScannerBuilder, ScannerModeData};
 
 const DFAS: &[DfaData; 7] = &[
     /* 0 */
@@ -155,6 +155,8 @@ const DFAS: &[DfaData; 7] = &[
     (".", &[1], &[(0, 1), (0, 0)], &[(0, (4, 1))]),
 ];
 
+const MODES: &[ScannerModeData; 0] = &[];
+
 fn matches_char_class(c: char, char_class: usize) -> bool {
     match char_class {
         /* \r */
@@ -184,14 +186,15 @@ fn matches_char_class(c: char, char_class: usize) -> bool {
 pub(crate) fn create_scanner() -> Scanner {
     let mut builder = ScannerBuilder::new();
     builder.add_dfa_data(DFAS);
+    builder.add_scanner_mode_data(MODES);
     builder.build()
 }
 
 pub(crate) fn create_find_iter<'r, 'h>(
-    regex: &'r mut Scanner,
+    scanner: &'r mut Scanner,
     input: &'h str,
 ) -> FindMatches<'r, 'h> {
-    regex.find_iter(input, matches_char_class)
+    scanner.find_iter(input, matches_char_class)
 }
 ```
 

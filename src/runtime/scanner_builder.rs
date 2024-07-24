@@ -1,4 +1,4 @@
-use super::{Dfa, DfaData, Scanner, ScannerMode};
+use super::{Dfa, DfaData, Scanner, ScannerMode, ScannerModeData};
 
 /// A scanner builder is used to build a scanner.
 #[derive(Debug, Default)]
@@ -23,9 +23,12 @@ impl ScannerBuilder {
         self.dfas = dfa_data.iter().map(|dfa| dfa.into()).collect();
     }
 
-    /// Adds a scanner mode to the scanner builder.
-    pub fn add_scanner_mode(&mut self, scanner_mode: ScannerMode) {
-        self.scanner_modes.push(scanner_mode);
+    /// Adds a scanner mode data to the scanner builder.
+    pub fn add_scanner_mode_data(&mut self, scanner_mode_data: &[ScannerModeData]) {
+        for mode in scanner_mode_data {
+            let scanner_mode = ScannerMode::new(&self.dfas, mode);
+            self.scanner_modes.push(scanner_mode);
+        }
     }
 
     /// Builds the scanner from the scanner builder.

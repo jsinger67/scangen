@@ -1,6 +1,6 @@
 #![allow(clippy::manual_is_ascii_check)]
 
-use scangen::{DfaData, FindMatches, Scanner, ScannerBuilder};
+use scangen::{DfaData, FindMatches, Scanner, ScannerBuilder, ScannerModeData};
 
 const DFAS: &[DfaData; 40] = &[
     /* 0 */
@@ -491,6 +491,8 @@ const DFAS: &[DfaData; 40] = &[
     (".", &[1], &[(0, 1), (0, 0)], &[(0, (4, 1))]),
 ];
 
+const MODES: &[ScannerModeData; 0] = &[];
+
 fn matches_char_class(c: char, char_class: usize) -> bool {
     match char_class {
         /* \r */
@@ -605,6 +607,7 @@ fn matches_char_class(c: char, char_class: usize) -> bool {
 pub(crate) fn create_scanner() -> Scanner {
     let mut builder = ScannerBuilder::new();
     builder.add_dfa_data(DFAS);
+    builder.add_scanner_mode_data(MODES);
     builder.build()
 }
 

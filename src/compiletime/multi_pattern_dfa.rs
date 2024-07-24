@@ -1,6 +1,6 @@
 use regex_syntax::ast::Ast;
 
-use crate::{Result, ScanGenError, ScanGenErrorKind};
+use crate::{Result, ScanGenError, ScanGenErrorKind, ScannerModeData};
 
 use super::{compiled_dfa::CompiledDfa, dfa::Dfa, MatchFunction, MultiPatternNfa};
 
@@ -93,12 +93,16 @@ impl MultiPatternDfa {
         Ok(())
     }
 
-    pub(crate) fn generate_code(&self, output: &mut dyn std::io::Write) -> Result<()> {
+    pub(crate) fn generate_code(
+        &self,
+        scanner_mode_data: &[ScannerModeData],
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
         writeln!(
             output,
             r"#![allow(clippy::manual_is_ascii_check)]
 
- use scangen::{{DfaData, FindMatches, Scanner, ScannerBuilder}};
+ use scangen::{{DfaData, FindMatches, Scanner, ScannerBuilder, ScannerModeData}};
  
  "
         )?;
@@ -106,6 +110,22 @@ impl MultiPatternDfa {
         for (index, dfa) in self.dfas.iter().enumerate() {
             writeln!(output, "    /* {} */ ", index)?;
             dfa.generate_code(output)?;
+        }
+        writeln!(output, "];")?;
+        writeln!(output)?;
+
+        writeln!(
+            output,
+            "const MODES: &[ScannerModeData; {}] = &[",
+            scanner_mode_data.len()
+        )?;
+        for (index, mode) in scanner_mode_data.iter().enumerate() {
+            writeln!(output, "    /* {} */ ", index)?;
+            writeln!(output, "    (\"{}\", &[", mode.0)?;
+            for (dfa_index, token_type) in mode.1.iter() {
+                writeln!(output, "        ({}, {}),", dfa_index, token_type)?;
+            }
+            writeln!(output, "    ]),")?;
         }
         writeln!(output, "];")?;
         writeln!(output)?;
@@ -131,6 +151,7 @@ impl MultiPatternDfa {
 pub(crate) fn create_scanner() -> Scanner {{
     let mut builder = ScannerBuilder::new();
     builder.add_dfa_data(DFAS);
+    builder.add_scanner_mode_data(MODES);
     builder.build()
 }}
 

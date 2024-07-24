@@ -8,7 +8,7 @@ mod scanner_builder;
 pub use scanner_builder::ScannerBuilder;
 
 mod scanner_mode;
-pub use scanner_mode::ScannerMode;
+pub use scanner_mode::{ScannerMode, ScannerModeData};
 
 mod find_matches;
 pub use find_matches::FindMatches;

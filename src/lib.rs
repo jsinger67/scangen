@@ -32,7 +32,7 @@
 //!     // Create a buffer to hold the generated code
 //!     let mut out_file = fs::File::create(file_name.clone()).expect("Failed to create file");
 //!     // Generate the code
-//!     let result = generate_code(TERMINALS, &mut out_file);
+//!     let result = generate_code(TERMINALS, &[], &mut out_file);
 //!     // Assert that the code generation was successful
 //!     assert!(result.is_ok());
 //! }
@@ -53,4 +53,6 @@ pub use compiletime::{generate_code, try_format, Result, ScanGenError, ScanGenEr
 /// Runtime module
 #[cfg(feature = "runtime")]
 mod runtime;
-pub use runtime::{Dfa, DfaData, FindMatches, Scanner, ScannerBuilder, ScannerMode};
+pub use runtime::{
+    Dfa, DfaData, FindMatches, Scanner, ScannerBuilder, ScannerMode, ScannerModeData,
+};

@@ -1,12 +1,33 @@
 use super::Dfa;
 
+/// The data of a scanner mode generated as Rust code.
+pub type ScannerModeData = (
+    // The name of the scanner mode.
+    &'static str,
+    // The DFAs of the scanner mode bundled with their associated token type numbers.
+    &'static [(usize, usize)],
+);
+
 /// A ScannerMode is a set of active DFAs with their associated token type numbers.
-/// The DFAs are clones from the Scanner's `dfas` field.
+/// The DFAs are clones from the Scanner's `dfas` field for the sake of performance.
 /// The token type numbers are of type `usize` bundled with the DFAs.
 #[derive(Debug)]
 pub struct ScannerMode {
     /// The name of the mode.
     pub name: String,
     /// The DFAs and their associated token type numbers.
-    pub dfas: Vec<(Dfa, usize)>,
+    pub(crate) dfas: Vec<(Dfa, usize)>,
+}
+
+impl ScannerMode {
+    /// Creates a new scanner mode from the Scanner's DFAs and the ScannerModeData.
+    pub fn new(dfas: &[Dfa], scanner_mode_data: &ScannerModeData) -> Self {
+        let name = scanner_mode_data.0.to_string();
+        let dfas = scanner_mode_data
+            .1
+            .iter()
+            .map(|(dfa_index, token_type)| (dfas[*dfa_index].clone(), *token_type))
+            .collect();
+        Self { name, dfas }
+    }
 }

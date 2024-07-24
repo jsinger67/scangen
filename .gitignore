@@ -2,4 +2,4 @@
 /.vscode
 *.dot
 *.svg
-data/scanner.rs
+data/*.rs
