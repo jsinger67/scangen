@@ -52,7 +52,7 @@ mod compiletime;
 pub use compiletime::{generate_code, try_format, Result, ScanGenError, ScanGenErrorKind};
 
 /// Runtime module
-#[cfg(all(feature = "runtime", not(feature = "generate")))]
+#[cfg(feature = "runtime")]
 mod runtime;
-#[cfg(all(feature = "runtime", not(feature = "generate")))]
+#[cfg(feature = "runtime")]
 pub use runtime::{Dfa, FindMatches, Scanner, ScannerBuilder, ScannerMode};

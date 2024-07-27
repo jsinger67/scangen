@@ -49,3 +49,38 @@ impl ScannerMode {
         None
     }
 }
+
+#[cfg(test)]
+
+mod tests {
+    use crate::common::MatchingState;
+
+    use super::*;
+
+    const SCANNER_MODE: ScannerModeData = (
+        "test",
+        &[(0usize, 0usize)],
+        &[(0usize, 0usize), (1usize, 1usize), (3usize, 2usize)],
+    );
+
+    #[test]
+    fn test_scanner_mode() {
+        let dfa = Dfa {
+            pattern: "test",
+            accepting_states: &[0],
+            state_ranges: &[(0, 0), (1, 1), (2, 2), (3, 3)],
+            transitions: &[],
+            matching_state: MatchingState::default(),
+        };
+        let dfas = vec![dfa];
+        let scanner_mode = ScannerMode::new(&dfas, &SCANNER_MODE);
+        assert_eq!(scanner_mode.name, "test");
+        assert_eq!(scanner_mode.dfas.len(), 1);
+        assert_eq!(scanner_mode.transitions.len(), 3);
+        assert_eq!(scanner_mode.has_transition(0), Some(0));
+        assert_eq!(scanner_mode.has_transition(1), Some(1));
+        assert_eq!(scanner_mode.has_transition(2), None);
+        assert_eq!(scanner_mode.has_transition(3), Some(2));
+        assert_eq!(scanner_mode.has_transition(8), None);
+    }
+}
