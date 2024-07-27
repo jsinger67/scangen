@@ -44,7 +44,7 @@ impl Scanner {
     ) -> Option<Match> {
         let current_mode = &mut self.scanner_modes[self.current_mode];
         for dfa in current_mode.dfas.iter_mut() {
-            dfa.0.reset();
+            dfa.reset();
         }
 
         // All indices of the DFAs that are still active.
@@ -52,23 +52,20 @@ impl Scanner {
 
         for (i, c) in char_indices {
             for dfa_index in &active_dfas {
-                current_mode.dfas[*dfa_index]
-                    .0
-                    .advance(i, c, matches_char_class);
+                current_mode.dfas[*dfa_index].advance(i, c, matches_char_class);
             }
 
             if i == 0 {
                 // We remove all DFAs that did not find a match at the start position.
                 for (index, dfa) in current_mode.dfas.iter().enumerate() {
-                    if dfa.0.matching_state.is_no_match() {
+                    if dfa.matching_state().is_no_match() {
                         active_dfas.retain(|&dfa_index| dfa_index != index);
                     }
                 }
             }
 
             // We remove all DFAs from `active_dfas` that finished.
-            active_dfas
-                .retain(|&dfa_index| current_mode.dfas[dfa_index].0.search_for_longer_match());
+            active_dfas.retain(|&dfa_index| current_mode.dfas[dfa_index].search_for_longer_match());
 
             // If all DFAs have finished, we can stop the search.
             if active_dfas.is_empty() {
@@ -85,16 +82,22 @@ impl Scanner {
     fn find_first_longest_match(&mut self) -> Option<Match> {
         let mut current_match: Option<Match> = None;
         let current_mode = &self.scanner_modes[self.current_mode];
-        for (dfa, pattern) in current_mode.dfas.iter() {
-            if let Some(span) = dfa.current_match() {
+        for dfa in current_mode.dfas.iter() {
+            if let Some(dfa_match) = dfa.current_match() {
                 if current_match.is_none()
-                    || span.start < current_match.unwrap().start()
-                    || span.start == current_match.unwrap().start()
-                        && span.len() > current_match.unwrap().span().len()
+                    || dfa_match.start() < current_match.unwrap().start()
+                    || dfa_match.start() == current_match.unwrap().start()
+                        && dfa_match.len() > current_match.unwrap().span().len()
                 {
                     // We have a match and we continue the look for a longer match.
-                    current_match = Some(Match::new(*pattern, span));
+                    current_match = Some(dfa_match);
                 }
+            }
+        }
+        if let Some(current_match) = current_match.as_ref() {
+            // We perform a scanner mode switch if a transition is defined for the token type found.
+            if let Some(next_mode) = current_mode.has_transition(current_match.token_type()) {
+                self.current_mode = next_mode;
             }
         }
         current_match

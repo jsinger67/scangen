@@ -1,9 +1,9 @@
-#![allow(dead_code)]
-
 use regex_syntax::ast::Ast;
 
+#[cfg(all(feature = "runtime", not(feature = "generate")))]
+use crate::common::Span;
 use crate::{
-    common::{MatchingState, Span},
+    common::MatchingState,
     compiletime::{
         character_class::ComparableAst, dfa::Dfa, match_function::MatchFunction, Result,
         ScanGenError,
@@ -87,22 +87,27 @@ impl CompiledDfa {
         Ok(())
     }
 
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn matching_state(&self) -> &MatchingState<StateID> {
         &self.matching_state
     }
 
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn reset(&mut self) {
         self.matching_state = MatchingState::new();
     }
 
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn current_state(&self) -> StateID {
         self.matching_state.current_state()
     }
 
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn current_match(&self) -> Option<Span> {
         self.matching_state.last_match()
     }
 
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn advance(
         &mut self,
         c_pos: usize,
@@ -126,6 +131,7 @@ impl CompiledDfa {
         }
     }
 
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     #[inline]
     fn find_transition(
         &self,
@@ -143,6 +149,7 @@ impl CompiledDfa {
     }
 
     /// Returns true if the search should continue on the next character.
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn search_on(&self) -> bool {
         !self.matching_state.is_longest_match()
     }

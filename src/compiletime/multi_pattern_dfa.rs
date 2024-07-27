@@ -33,12 +33,6 @@ impl MultiPatternDfa {
         &self.dfas
     }
 
-    /// Returns the number of pattern that are matched by the `MultiPatternDfa`.
-    #[allow(dead_code)]
-    pub fn num_patterns(&self) -> usize {
-        self.dfas.len()
-    }
-
     /// Add a pattern to the multi-pattern DFA.
     pub fn add_pattern<S>(&mut self, pattern: S) -> Result<()>
     where

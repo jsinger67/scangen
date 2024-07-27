@@ -1,6 +1,6 @@
 use crate::{DfaData, ScannerModeData};
 
-use super::{Dfa, Scanner, ScannerMode};
+use super::{Dfa, DfaWithTokenType, Scanner, ScannerMode};
 
 /// A scanner builder is used to build a scanner.
 #[derive(Debug, Default)]
@@ -52,14 +52,15 @@ impl ScannerBuilder {
     fn create_default_mode(scanner: &mut Scanner) {
         let mut token_type = 0;
         let dfas = scanner.dfas.iter().map(|dfa| {
-            let dfa = dfa.clone();
-            let dfa_with_token_type = (dfa, token_type);
+            let dfa = DfaWithTokenType::new(dfa.clone(), token_type);
             token_type += 1;
-            dfa_with_token_type
+            dfa
         });
         let default_mode = ScannerMode {
             name: "INITIAL".to_string(),
             dfas: dfas.collect(),
+            // The default mode has no transitions.
+            transitions: Vec::new(),
         };
         scanner.scanner_modes.push(default_mode);
     }

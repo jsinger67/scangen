@@ -512,7 +512,7 @@ mod tests {
     /// A macro that simplifies the rendering of a dot file for a multi-pattern NFA.
     macro_rules! multi_nfa_render_to {
         ($nfa:expr, $label:expr) => {
-            let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
+            let mut f = std::fs::File::create(format!("data/{}.dot", $label)).unwrap();
             $crate::compiletime::dot::multi_nfa_render($nfa, $label, &mut f);
         };
     }
@@ -520,7 +520,7 @@ mod tests {
     /// A macro that simplifies the rendering of a dot file for a DFA.
     macro_rules! dfa_render_to {
         ($nfa:expr, $label:expr) => {
-            let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
+            let mut f = std::fs::File::create(format!("data/{}.dot", $label)).unwrap();
             $crate::compiletime::dot::dfa_render($nfa, $label, &mut f);
         };
     }

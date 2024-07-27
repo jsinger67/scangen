@@ -17,4 +17,8 @@ pub type ScannerModeData = (
     &'static str,
     // The DFAs of the scanner mode bundled with their associated token type numbers.
     &'static [(usize, usize)],
+    // The transitions between the scanner modes triggered by a token type number.
+    // The entries are tuples of the token type numbers and the new scanner mode index and are
+    // sorted by token type number.
+    &'static [(usize, usize)],
 );

@@ -1,6 +1,6 @@
 use crate::{
     common::{MatchingState, Span},
-    DfaData,
+    DfaData, Match,
 };
 
 /// Runtime version of a DFA.
@@ -85,5 +85,64 @@ impl From<&DfaData> for Dfa {
             transitions: data.3,
             matching_state: MatchingState::new(),
         }
+    }
+}
+
+/// A DFA bundled with its associated token type number.
+/// This struct is used to allow different token type number for the same pattern, i.e. Dfas, in
+/// different scanner modes.
+///
+/// You could imagine to have differnt patterns for, e.g. a Comment in different scanner modes, but
+/// you want to have the same token type number for all of them.
+#[derive(Debug)]
+pub(crate) struct DfaWithTokenType {
+    dfa: Dfa,
+    token_type: usize,
+}
+
+impl DfaWithTokenType {
+    /// Creates a new DFA with its associated token type number.
+    pub(crate) fn new(dfa: Dfa, token_type: usize) -> Self {
+        Self { dfa, token_type }
+    }
+
+    /// Returns the current match.
+    #[inline]
+    pub(crate) fn current_match(&self) -> Option<Match> {
+        self.dfa
+            .current_match()
+            .map(|span| Match::new(self.token_type, span))
+    }
+
+    /// Resets the DFA.
+    #[inline]
+    pub(crate) fn reset(&mut self) {
+        self.dfa.reset();
+    }
+
+    /// Advances the DFA by one character.
+    #[inline]
+    pub(crate) fn advance(
+        &mut self,
+        c_pos: usize,
+        c: char,
+        matches_char_class: fn(char, usize) -> bool,
+    ) {
+        self.dfa.advance(c_pos, c, matches_char_class);
+    }
+
+    /// Returns the matching state of the DFA.
+    #[inline]
+    pub(crate) fn matching_state(&self) -> &MatchingState<usize> {
+        &self.dfa.matching_state
+    }
+
+    /// Returns true if the search should continue on the next character if the automaton has ever
+    /// been in the matching state Start.
+    /// This is used to determine if the search should continue after the automaton has found a
+    /// match.
+    #[inline]
+    pub(crate) fn search_for_longer_match(&self) -> bool {
+        self.dfa.search_for_longer_match()
     }
 }

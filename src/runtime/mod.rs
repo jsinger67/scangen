@@ -1,5 +1,6 @@
 mod dfa;
 pub use dfa::Dfa;
+pub(crate) use dfa::DfaWithTokenType;
 
 mod scanner;
 pub use scanner::Scanner;

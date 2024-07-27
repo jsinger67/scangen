@@ -42,26 +42,29 @@ impl<'r, 'h> FindMatches<'r, 'h> {
             .scanner
             .find_from(self.char_indices.clone(), self.matches_char_class);
         if let Some(matched) = result {
-            // Advance the char_indices iterator to the end of the match.
-            let end = matched.span().end - 1;
-            let mut peekable = self.char_indices.by_ref().peekable();
-            while peekable.next_if(|(i, _)| *i < end).is_some() {}
+            self.advance_beyound_match(matched);
         } else {
-            // Advance the char_indices iterator by one character and try again.
+            // Repeatedly advance the char_indices iterator by one character and try again until
+            // a match is found or the iterator is exhausted.
             while self.char_indices.next().is_some() {
                 result = self
                     .scanner
                     .find_from(self.char_indices.clone(), self.matches_char_class);
                 if let Some(matched) = result {
-                    // Advance the char_indices iterator to the end of the match.
-                    let end = matched.span().end - 1;
-                    let mut peekable = self.char_indices.by_ref().peekable();
-                    while peekable.next_if(|(i, _)| *i < end).is_some() {}
+                    self.advance_beyound_match(matched);
                     break;
                 }
             }
         }
         result
+    }
+
+    // Advance the char_indices iterator to the end of the match.
+    #[inline]
+    fn advance_beyound_match(&mut self, matched: Match) {
+        let end = matched.span().end - 1;
+        let mut peekable = self.char_indices.by_ref().peekable();
+        while peekable.next_if(|(i, _)| *i < end).is_some() {}
     }
 }
 

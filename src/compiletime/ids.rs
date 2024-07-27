@@ -12,6 +12,8 @@ macro_rules! impl_id {
             }
 
             /// Get the id as usize.
+            /// It is dead code in case of CharClassID.
+            #[allow(dead_code)]
             #[inline]
             pub(crate) fn as_usize(&self) -> usize {
                 self.0

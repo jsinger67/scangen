@@ -308,7 +308,7 @@ mod tests {
     /// A macro that simplifies the rendering of a dot file for a NFA.
     macro_rules! nfa_render_to {
         ($nfa:expr, $label:expr) => {
-            let mut f = std::fs::File::create(format!("{}.dot", $label)).unwrap();
+            let mut f = std::fs::File::create(format!("data/{}.dot", $label)).unwrap();
             $crate::compiletime::dot::nfa_render($nfa, $label, &mut f);
         };
     }

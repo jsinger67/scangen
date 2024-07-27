@@ -1,3 +1,4 @@
+#[cfg(all(feature = "runtime", not(feature = "generate")))]
 use crate::common::Span;
 
 /// The state of the DFA during matching.
@@ -21,11 +22,13 @@ where
     S: std::fmt::Debug + Default + Clone + Copy + PartialEq + Eq,
 {
     /// Create a new matching state.
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn new() -> Self {
         MatchingState::default()
     }
 
     /// Set the current state of the DFA during matching.
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     #[inline]
     pub(crate) fn set_current_state(&mut self, state: S) {
         self.current_state = state;
@@ -39,6 +42,7 @@ where
 
     /// No transition was found.
     /// See matching_state.dot for the state diagram
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn no_transition(&mut self) {
         match self.state {
             InnerMatchingState::None => {
@@ -60,6 +64,7 @@ where
 
     /// Transition to a non-accepting state.
     /// See matching_state.dot for the state diagram
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn transition_to_non_accepting(&mut self, i: usize) {
         match self.state {
             InnerMatchingState::None => {
@@ -83,6 +88,7 @@ where
 
     /// Transition to an accepting state.
     /// See matching_state.dot for the state diagram
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn transition_to_accepting(&mut self, i: usize, c: char) {
         match self.state {
             InnerMatchingState::None => {
@@ -114,31 +120,20 @@ where
 
     /// Returns true if the current state is no match.
     #[inline]
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn is_no_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::None)
     }
 
-    /// Returns true if in the current state a start of a match has been recorded.
-    #[inline]
-    #[allow(dead_code)]
-    pub(crate) fn is_start_match(&self) -> bool {
-        matches!(self.state, InnerMatchingState::Start)
-    }
-
-    /// Returns true if the current state is an accepting match.
-    #[inline]
-    #[allow(dead_code)]
-    pub(crate) fn is_accepting_match(&self) -> bool {
-        matches!(self.state, InnerMatchingState::Accepting)
-    }
-
     /// Returns true if the current state is the longest match.
     #[inline]
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn is_longest_match(&self) -> bool {
         matches!(self.state, InnerMatchingState::Longest)
     }
 
     /// Returns the last match found.
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     pub(crate) fn last_match(&self) -> Option<Span> {
         if let (Some(start), Some(end)) = (self.start_position, self.end_position) {
             Some(Span { start, end })
@@ -177,6 +172,7 @@ pub(crate) enum InnerMatchingState {
     ///
     /// If a transition is found, record the match and switch to AcceptingMatch.
     /// If no transition is found, reset the match and switch to NoMatch.
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     Start,
 
     /// Match has been recorded before, continue search for a longer match.
@@ -186,6 +182,7 @@ pub(crate) enum InnerMatchingState {
     /// If no transition is found, switch to LongestMatch.
     /// If a transition to a non-accepting state is found stay in AcceptingMatch.
     /// If a transition to an accepting state is found, record the match and stay in AcceptingMatch.
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     Accepting,
 
     /// Match has been recorded before.
@@ -194,5 +191,6 @@ pub(crate) enum InnerMatchingState {
     /// State is an accepting state.
     ///
     /// This state can't be left.
+    #[cfg(all(feature = "runtime", not(feature = "generate")))]
     Longest,
 }

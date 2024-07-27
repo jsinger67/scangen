@@ -7,7 +7,7 @@
 //! # Crate features
 //! The crate has two features:
 //! - `generate`: This feature enables the compiletime module which can be used to generate code
-//!  from a regex syntax.
+//!   from a regex syntax.
 //! - `runtime`: This feature enables the runtime module which can be used to scan text for matches.
 //! # Example
 //! The following example shows how to generate code from a set of regexes and format the generated
@@ -48,9 +48,11 @@ pub use common::{DfaData, Match, ScannerModeData, Span};
 /// Compiletime module
 #[cfg(feature = "generate")]
 mod compiletime;
+#[cfg(feature = "generate")]
 pub use compiletime::{generate_code, try_format, Result, ScanGenError, ScanGenErrorKind};
 
 /// Runtime module
-#[cfg(feature = "runtime")]
+#[cfg(all(feature = "runtime", not(feature = "generate")))]
 mod runtime;
+#[cfg(all(feature = "runtime", not(feature = "generate")))]
 pub use runtime::{Dfa, FindMatches, Scanner, ScannerBuilder, ScannerMode};
