@@ -25,7 +25,7 @@ impl std::fmt::Display for ScanGenError {
     }
 }
 
-/// The error kine type.
+/// The error kind type.
 #[derive(Error, Debug)]
 pub enum ScanGenErrorKind {
     /// An error occurred during the parsing of the regex syntax.

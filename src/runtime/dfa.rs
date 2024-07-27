@@ -7,20 +7,19 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Dfa {
     /// The pattern that this DFA recognizes.
-    pub pattern: &'static str,
+    pub pattern: String,
     /// The states that are accepting states.
-    pub accepting_states: &'static [usize],
+    pub accepting_states: Vec<usize>,
     /// The ranges of transitions for each state.
-    pub state_ranges: &'static [(usize, usize)],
+    pub state_ranges: Vec<(usize, usize)>,
     /// The transitions for each state.
-    pub transitions: &'static [(usize, (usize, usize))],
+    pub transitions: Vec<(usize, (usize, usize))>,
     /// The current matching state of the DFA.
     pub(crate) matching_state: MatchingState<usize>,
 }
 
 impl Dfa {
     /// Advances the DFA by one character.
-    #[inline]
     pub fn advance(&mut self, c_pos: usize, c: char, matches_char_class: fn(char, usize) -> bool) {
         // If we already have the longest match, we can stop
         if self.matching_state.is_longest_match() {
@@ -40,21 +39,24 @@ impl Dfa {
     }
 
     /// Finds the next state of the DFA.
-    #[inline]
     fn find_transition(
         &self,
         c: char,
         matches_char_class: fn(char, usize) -> bool,
     ) -> Option<usize> {
-        let (start, end) = self.state_ranges[self.matching_state.current_state()];
+        let current_state = self.matching_state.current_state();
+        let (start, end) = self.state_ranges[current_state];
         let transitions = &self.transitions[start..end];
-        for (state, (char_class, target_state)) in transitions {
-            debug_assert_eq!(state, &self.matching_state.current_state());
-            if (matches_char_class)(c, *char_class) {
-                return Some(*target_state);
-            }
-        }
-        None
+        transitions
+            .iter()
+            .find_map(|(state, (char_class, target_state))| {
+                debug_assert_eq!(state, &current_state);
+                if (matches_char_class)(c, *char_class) {
+                    Some(*target_state)
+                } else {
+                    None
+                }
+            })
     }
 
     #[inline]
@@ -79,10 +81,10 @@ impl Dfa {
 impl From<&DfaData> for Dfa {
     fn from(data: &DfaData) -> Self {
         Dfa {
-            pattern: data.0,
-            accepting_states: data.1,
-            state_ranges: data.2,
-            transitions: data.3,
+            pattern: data.0.to_owned(),
+            accepting_states: data.1.to_vec(),
+            state_ranges: data.2.to_vec(),
+            transitions: data.3.to_vec(),
             matching_state: MatchingState::new(),
         }
     }

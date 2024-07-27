@@ -9,6 +9,19 @@
 //! - `generate`: This feature enables the compiletime module which can be used to generate code
 //!   from a regex syntax.
 //! - `runtime`: This feature enables the runtime module which can be used to scan text for matches.
+//!
+//! To use only the runtime feature, use the following in your `Cargo.toml`:
+//! ```toml
+//! [dependencies]
+//! scangen = { version = "0.1", default-features = false, features = ["runtime"] }
+//! ```
+//!
+//! Otherwise, to only use the compiletime feature, use the following:
+//! ```toml
+//! [dependencies]
+//! scangen = { version = "0.1", default-features = false, features = ["generate"] }
+//! ```
+//!
 //! # Example
 //! The following example shows how to generate code from a set of regexes and format the generated
 //! code.
@@ -55,4 +68,7 @@ pub use compiletime::{generate_code, try_format, Result, ScanGenError, ScanGenEr
 #[cfg(feature = "runtime")]
 mod runtime;
 #[cfg(feature = "runtime")]
-pub use runtime::{Dfa, FindMatches, Scanner, ScannerBuilder, ScannerMode};
+pub use runtime::{
+    Dfa, FindMatches, Scanner, ScannerBuilder, ScannerBuilderWithScannerModes,
+    ScannerBuilderWithsDfas, ScannerBuilderWithsDfasAndScannerModes, ScannerMode,
+};

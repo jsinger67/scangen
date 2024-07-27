@@ -3,6 +3,7 @@ use crate::ScannerModeData;
 use super::{Dfa, DfaWithTokenType};
 
 /// A ScannerMode is a set of active DFAs with their associated token type numbers.
+///
 /// The DFAs are clones from the Scanner's `dfas` field for the sake of performance.
 /// The token type numbers are of type `usize` bundled with the DFAs.
 #[derive(Debug)]
@@ -48,6 +49,12 @@ impl ScannerMode {
         }
         None
     }
+
+    /// Returns the name of the scanner mode.
+    #[inline]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 }
 
 #[cfg(test)]
@@ -66,10 +73,10 @@ mod tests {
     #[test]
     fn test_scanner_mode() {
         let dfa = Dfa {
-            pattern: "test",
-            accepting_states: &[0],
-            state_ranges: &[(0, 0), (1, 1), (2, 2), (3, 3)],
-            transitions: &[],
+            pattern: "test".to_string(),
+            accepting_states: vec![0],
+            state_ranges: vec![(0, 0), (1, 1), (2, 2), (3, 3)],
+            transitions: vec![],
             matching_state: MatchingState::default(),
         };
         let dfas = vec![dfa];

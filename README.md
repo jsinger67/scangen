@@ -61,6 +61,11 @@ longest match will win mitigates the need for such anchors.
 Also we currently **do not support flags** (i, m, s, R, U, u, x), like in ```r"(?i)a+(?-i)b+"```.
 We need to evaluate if this is a problem, but a the moment we belief that this is tolerable.
 
+## What will perhaps never be implemented
+
+We have no need for capture groups in the context of token matching, so we see no necessity to
+implement this feature.
+
 # Example
 The following example shows how to generate code from a set of regexes and format the generated
 code.

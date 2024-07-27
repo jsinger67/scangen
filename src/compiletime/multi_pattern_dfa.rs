@@ -100,7 +100,7 @@ impl MultiPatternDfa {
  
  "
         )?;
-        writeln!(output, "const DFAS: &[DfaData; {}] = &[", self.dfas.len())?;
+        writeln!(output, "const DFAS: &[DfaData] = &[")?;
         for (index, dfa) in self.dfas.iter().enumerate() {
             writeln!(output, "    /* {} */ ", index)?;
             dfa.generate_code(output)?;
@@ -108,11 +108,7 @@ impl MultiPatternDfa {
         writeln!(output, "];")?;
         writeln!(output)?;
 
-        writeln!(
-            output,
-            "const MODES: &[ScannerModeData; {}] = &[",
-            scanner_mode_data.len()
-        )?;
+        writeln!(output, "const MODES: &[ScannerModeData] = &[")?;
         for (index, mode) in scanner_mode_data.iter().enumerate() {
             writeln!(output, "    /* {} */ ", index)?;
             writeln!(output, "    (\"{}\", &[", mode.0)?;
@@ -143,10 +139,10 @@ impl MultiPatternDfa {
             r"}}
 
 pub(crate) fn create_scanner() -> Scanner {{
-    let mut builder = ScannerBuilder::new();
-    builder.add_dfa_data(DFAS);
-    builder.add_scanner_mode_data(MODES);
-    builder.build()
+    ScannerBuilder::new()
+        .add_dfa_data(DFAS)
+        .add_scanner_mode_data(MODES)
+        .build()
 }}
 
 pub(crate) fn create_find_iter<'r, 'h>(
