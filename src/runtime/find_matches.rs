@@ -1,3 +1,5 @@
+use std::char;
+
 use crate::common::Match;
 
 use super::Scanner;
@@ -88,9 +90,10 @@ impl<'r, 'h> FindMatches<'r, 'h> {
         for _ in 0..n {
             let result = self
                 .scanner
-                .peek_from(&mut char_indices, self.matches_char_class);
+                .peek_from(char_indices.clone(), self.matches_char_class);
             if let Some(matched) = result {
                 matches.push(matched);
+                Self::advance_char_indices_beyond_match(&mut char_indices, matched);
                 if let Some(mode) = self.scanner.has_transition(matched.token_type()) {
                     mode_switch = true;
                     new_mode = mode;
@@ -100,10 +103,10 @@ impl<'r, 'h> FindMatches<'r, 'h> {
                 break;
             }
         }
-        if matches.len() == n {
-            PeekResult::Matches(matches)
-        } else if mode_switch {
+        if mode_switch {
             PeekResult::MatchesReachedModeSwitch((matches, new_mode))
+        } else if matches.len() == n {
+            PeekResult::Matches(matches)
         } else if matches.is_empty() {
             PeekResult::NotFound
         } else {
@@ -119,6 +122,20 @@ impl<'r, 'h> FindMatches<'r, 'h> {
         }
         let end = matched.span().end;
         for (i, c) in self.char_indices.by_ref() {
+            if i + c.len_utf8() >= end {
+                // Stop at the end of the match.
+                break;
+            }
+        }
+    }
+
+    /// Advances the given char_indices iterator to the end of the given match.
+    fn advance_char_indices_beyond_match(char_indices: &mut std::str::CharIndices, matched: Match) {
+        if matched.is_empty() {
+            return;
+        }
+        let end = matched.span().end;
+        for (i, c) in char_indices {
             if i + c.len_utf8() >= end {
                 // Stop at the end of the match.
                 break;
@@ -198,7 +215,8 @@ mod tests {
         ),
     ];
 
-    // The input string contains a string with escape sequences and line continuations.
+    // The input string contains a string which triggers a mode switch from "INITIAL" to "STRING"
+    // and back to "INITIAL".
     const INPUT: &str = r#"
 Id1
 "1. String"
@@ -226,13 +244,12 @@ Id2
     fn test_peek_n() {
         let mut scanner = scanner_with_modes::create_scanner();
         let mut find_iter = scanner_with_modes::create_find_iter(&mut scanner, INPUT);
-        let peeked = find_iter.peek_n(3);
+        let peeked = find_iter.peek_n(2);
         assert_eq!(
             peeked,
             PeekResult::Matches(vec![
                 Match::new(0, (0usize..1).into()),
-                Match::new(4, (2usize..4).into()),
-                Match::new(8, (5usize..6).into()),
+                Match::new(4, (1usize..4).into()),
             ])
         );
         let peeked = find_iter.peek_n(4);
@@ -241,11 +258,34 @@ Id2
             PeekResult::MatchesReachedModeSwitch((
                 vec![
                     Match::new(0, (0usize..1).into()),
-                    Match::new(4, (2usize..4).into()),
+                    Match::new(4, (1usize..4).into()),
+                    Match::new(0, (4usize..5).into()),
                     Match::new(8, (5usize..6).into()),
                 ],
                 1
             ))
+        );
+        let peeked = find_iter.peek_n(5);
+        assert_eq!(
+            peeked,
+            PeekResult::MatchesReachedModeSwitch((
+                vec![
+                    Match::new(0, (0usize..1).into()),
+                    Match::new(4, (1usize..4).into()),
+                    Match::new(0, (4usize..5).into()),
+                    Match::new(8, (5usize..6).into()),
+                ],
+                1
+            ))
+        );
+        let _ = find_iter.by_ref().take(7).collect::<Vec<_>>();
+        let peeked = find_iter.peek_n(4);
+        assert_eq!(
+            peeked,
+            PeekResult::MatchesReachedEnd(vec![
+                Match::new(4, (17usize..20).into()),
+                Match::new(0, (20usize..21).into()),
+            ])
         );
     }
 

@@ -84,7 +84,7 @@ impl Scanner {
     /// defined for the token type found.
     pub(crate) fn peek_from(
         &mut self,
-        char_indices: &mut std::str::CharIndices,
+        char_indices: std::str::CharIndices,
         matches_char_class: fn(char, usize) -> bool,
     ) -> Option<Match> {
         let current_mode = &mut self.scanner_modes[self.current_mode];
