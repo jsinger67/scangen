@@ -62,16 +62,7 @@ impl Scanner {
                 current_mode.dfas[*dfa_index].advance(i, c, matches_char_class);
             }
 
-            if i == 0 {
-                // We remove all DFAs that did not find a match at the start position.
-                for (index, dfa) in current_mode.dfas.iter().enumerate() {
-                    if dfa.matching_state().is_no_match() {
-                        active_dfas.retain(|&dfa_index| dfa_index != index);
-                    }
-                }
-            }
-
-            // We remove all DFAs from `active_dfas` that finished.
+            // We remove all DFAs from `active_dfas` that finished or did not find a match so far.
             active_dfas.retain(|&dfa_index| current_mode.dfas[dfa_index].search_for_longer_match());
 
             // If all DFAs have finished, we can stop the search.
