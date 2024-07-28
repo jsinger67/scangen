@@ -57,7 +57,7 @@ impl<'r, 'h> FindMatches<'r, 'h> {
             .scanner
             .find_from(self.char_indices.clone(), self.matches_char_class);
         if let Some(matched) = result {
-            self.advance_beyound_match(matched);
+            self.advance_beyond_match(matched);
         } else {
             // Repeatedly advance the char_indices iterator by one character and try again until
             // a match is found or the iterator is exhausted.
@@ -66,7 +66,7 @@ impl<'r, 'h> FindMatches<'r, 'h> {
                     .scanner
                     .find_from(self.char_indices.clone(), self.matches_char_class);
                 if let Some(matched) = result {
-                    self.advance_beyound_match(matched);
+                    self.advance_beyond_match(matched);
                     break;
                 }
             }
@@ -114,7 +114,7 @@ impl<'r, 'h> FindMatches<'r, 'h> {
 
     // Advance the char_indices iterator to the end of the match.
     #[inline]
-    fn advance_beyound_match(&mut self, matched: Match) {
+    fn advance_beyond_match(&mut self, matched: Match) {
         let end = matched.span().end - 1;
         let mut peekable = self.char_indices.by_ref().peekable();
         while peekable.next_if(|(i, _)| *i < end).is_some() {}
