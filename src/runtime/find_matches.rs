@@ -51,24 +51,23 @@ impl<'r, 'h> FindMatches<'r, 'h> {
     /// Returns the next match in the haystack.
     ///
     /// If no match is found, `None` is returned.
+    ///
+    /// The function calls the `find_from` method of the scanner to find the next match.
+    /// If a match is found, the function advances the char_indices iterator to the end of the match.
+    /// If no match is found, the function repeatedly advances the char_indices iterator by one
+    /// and tries again until a match is found or the iterator is exhausted.
     #[inline]
     pub fn next_match(&mut self) -> Option<Match> {
-        let mut result = self
-            .scanner
-            .find_from(self.char_indices.clone(), self.matches_char_class);
-        if let Some(matched) = result {
-            self.advance_beyond_match(matched);
-        } else {
-            // Repeatedly advance the char_indices iterator by one character and try again until
-            // a match is found or the iterator is exhausted.
-            while self.char_indices.next().is_some() {
-                result = self
-                    .scanner
-                    .find_from(self.char_indices.clone(), self.matches_char_class);
-                if let Some(matched) = result {
-                    self.advance_beyond_match(matched);
-                    break;
-                }
+        let mut result;
+        loop {
+            result = self
+                .scanner
+                .find_from(self.char_indices.clone(), self.matches_char_class);
+            if let Some(matched) = result {
+                self.advance_beyond_match(matched);
+                break;
+            } else if self.char_indices.next().is_none() {
+                break;
             }
         }
         result
@@ -115,9 +114,16 @@ impl<'r, 'h> FindMatches<'r, 'h> {
     // Advance the char_indices iterator to the end of the match.
     #[inline]
     fn advance_beyond_match(&mut self, matched: Match) {
-        let end = matched.span().end - 1;
-        let mut peekable = self.char_indices.by_ref().peekable();
-        while peekable.next_if(|(i, _)| *i < end).is_some() {}
+        if matched.is_empty() {
+            return;
+        }
+        let end = matched.span().end;
+        for (i, c) in self.char_indices.by_ref() {
+            if i + c.len_utf8() >= end {
+                // Stop at the end of the match.
+                break;
+            }
+        }
     }
 }
 
