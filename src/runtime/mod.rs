@@ -15,4 +15,7 @@ mod scanner_mode;
 pub use scanner_mode::ScannerMode;
 
 mod find_matches;
-pub use find_matches::FindMatches;
+pub use find_matches::{FindMatches, PeekResult};
+
+#[cfg(test)]
+mod generated;

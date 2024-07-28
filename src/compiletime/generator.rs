@@ -18,6 +18,7 @@ use std::time::Instant;
 pub fn generate_code(
     pattern: &[&str],
     scanner_mode_data: &[ScannerModeData],
+    scangen_module_name: Option<&str>,
     output: &mut dyn std::io::Write,
 ) -> Result<()> {
     let now = Instant::now();
@@ -25,7 +26,7 @@ pub fn generate_code(
     let mut multi_pattern_dfa = MultiPatternDfa::new();
     multi_pattern_dfa.add_patterns(pattern)?;
 
-    multi_pattern_dfa.generate_code(scanner_mode_data, output)?;
+    multi_pattern_dfa.generate_code(scanner_mode_data, scangen_module_name, output)?;
 
     let elapsed_time = now.elapsed();
     trace!(
@@ -92,7 +93,7 @@ mod tests {
             // Create a buffer to hold the generated code
             let mut out_file = fs::File::create("data/test_generate_code.rs").unwrap();
             // Generate the code
-            let result = generate_code(TERMINALS, &[], &mut out_file);
+            let result = generate_code(TERMINALS, &[], None, &mut out_file);
             // Assert that the code generation was successful
             assert!(result.is_ok());
         }

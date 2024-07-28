@@ -295,9 +295,13 @@ impl MatchFunction {
 
     fn generate_code_from_class_set_union(
         union: &ClassSetUnion,
+        negated: bool,
         output: &mut dyn std::io::Write,
     ) -> Result<()> {
         let num_items = union.items.len();
+        if negated {
+            write!(output, "!(")?;
+        }
         union.items.iter().enumerate().try_for_each(|(i, s)| {
             Self::generate_code_from_set_item(s.clone(), false, output)?;
             if i < num_items - 1 {
@@ -305,6 +309,9 @@ impl MatchFunction {
             }
             Ok::<(), ScanGenError>(())
         })?;
+        if negated {
+            write!(output, ")")?;
+        }
         Ok(())
     }
 
@@ -365,7 +372,7 @@ impl MatchFunction {
                 Self::generate_code_from_class_bracketed(c, output)?;
             }
             ClassSetItem::Union(ref c) => {
-                Self::generate_code_from_class_set_union(c, output)?;
+                Self::generate_code_from_class_set_union(c, negated, output)?;
             }
         }
         Ok(())

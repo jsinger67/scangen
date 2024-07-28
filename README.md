@@ -89,7 +89,7 @@ let file_name = "data/scanner.rs";
     // Create the file where the generated code should be written to
     let mut out_file = fs::File::create(file_name.clone()).expect("Failed to create file");
     // Generate the code
-    generate_code(TERMINALS, &[], &mut out_file).expect("Failed to generate code");
+    generate_code(TERMINALS, &[], None, &mut out_file).expect("Failed to generate code");
 }
 
 // Format the generated code

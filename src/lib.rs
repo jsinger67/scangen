@@ -45,7 +45,7 @@
 //!     // Create the file where the generated code should be written to
 //!     let mut out_file = fs::File::create(file_name.clone()).expect("Failed to create file");
 //!     // Generate the code
-//!     generate_code(TERMINALS, &[], &mut out_file).expect("Failed to generate code");
+//!     generate_code(TERMINALS, &[], None, &mut out_file).expect("Failed to generate code");
 //! }
 //!
 //! // Format the generated code
@@ -67,6 +67,6 @@ pub use compiletime::{generate_code, try_format, Result, ScanGenError, ScanGenEr
 mod runtime;
 #[cfg(feature = "runtime")]
 pub use runtime::{
-    Dfa, FindMatches, Scanner, ScannerBuilder, ScannerBuilderWithScannerModes,
+    Dfa, FindMatches, PeekResult, Scanner, ScannerBuilder, ScannerBuilderWithScannerModes,
     ScannerBuilderWithsDfas, ScannerBuilderWithsDfasAndScannerModes, ScannerMode,
 };

@@ -90,15 +90,18 @@ impl MultiPatternDfa {
     pub(crate) fn generate_code(
         &self,
         scanner_mode_data: &[ScannerModeData],
+        scangen_module_name: Option<&str>,
         output: &mut dyn std::io::Write,
     ) -> Result<()> {
+        let scangen_module_name: &str = scangen_module_name.unwrap_or("scangen");
         writeln!(
             output,
             r"#![allow(clippy::manual_is_ascii_check)]
 
- use scangen::{{DfaData, FindMatches, Scanner, ScannerBuilder, ScannerModeData}};
+ use {}::{{DfaData, FindMatches, Scanner, ScannerBuilder, ScannerModeData}};
  
- "
+ ",
+            scangen_module_name
         )?;
         writeln!(output, "const DFAS: &[DfaData] = &[")?;
         for (index, dfa) in self.dfas.iter().enumerate() {
@@ -114,6 +117,10 @@ impl MultiPatternDfa {
             writeln!(output, "    (\"{}\", &[", mode.0)?;
             for (dfa_index, token_type) in mode.1.iter() {
                 writeln!(output, "        ({}, {}),", dfa_index, token_type)?;
+            }
+            writeln!(output, "    ], &[").unwrap();
+            for (token_type, new_mode) in mode.2.iter() {
+                writeln!(output, "        ({}, {}),", token_type, new_mode)?;
             }
             writeln!(output, "    ]),")?;
         }

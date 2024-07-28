@@ -25,3 +25,33 @@ impl Span {
         self.end.saturating_sub(self.start)
     }
 }
+
+impl<T> From<std::ops::Range<T>> for Span
+where
+    T: Into<usize>,
+{
+    fn from(range: std::ops::Range<T>) -> Self {
+        Span {
+            start: range.start.into(),
+            end: range.end.into(),
+        }
+    }
+}
+
+impl<T> From<std::ops::RangeInclusive<T>> for Span
+where
+    T: Into<usize> + Copy,
+{
+    fn from(range: std::ops::RangeInclusive<T>) -> Self {
+        Span {
+            start: (*range.start()).into(),
+            end: (*range.end()).into() + 1,
+        }
+    }
+}
+
+impl std::fmt::Display for Span {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}..{}", self.start, self.end)
+    }
+}
