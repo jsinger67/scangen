@@ -24,6 +24,12 @@ impl Span {
     pub fn len(&self) -> usize {
         self.end.saturating_sub(self.start)
     }
+
+    /// Get the span as range.
+    #[inline]
+    pub fn range(self) -> std::ops::Range<usize> {
+        self.start..self.end
+    }
 }
 
 impl<T> From<std::ops::Range<T>> for Span

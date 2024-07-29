@@ -23,23 +23,20 @@ pub enum PeekResult {
 ///
 /// The iterator yields a [`Match`] value until no more matches could be found.
 ///
-/// The lifetime parameters are as follows:
-///
-/// * `'r` represents the lifetime of the `Scanner` that produced this iterator.
 /// * `'h` represents the lifetime of the haystack being searched.
 ///
 /// This iterator can be created with the [`Scanner::find_iter`] method.
 #[derive(Debug)]
-pub struct FindMatches<'r, 'h> {
-    scanner: &'r mut Scanner,
+pub struct FindMatches<'h> {
+    scanner: Scanner,
     char_indices: std::str::CharIndices<'h>,
     matches_char_class: fn(char, usize) -> bool,
 }
 
-impl<'r, 'h> FindMatches<'r, 'h> {
+impl<'h> FindMatches<'h> {
     /// Creates a new `FindMatches` iterator.
     pub fn new(
-        scanner: &'r mut Scanner,
+        scanner: Scanner,
         input: &'h str,
         matches_char_class: fn(char, usize) -> bool,
     ) -> Self {
@@ -144,7 +141,7 @@ impl<'r, 'h> FindMatches<'r, 'h> {
     }
 }
 
-impl Iterator for FindMatches<'_, '_> {
+impl Iterator for FindMatches<'_> {
     type Item = Match;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -242,8 +239,8 @@ Id2
 
     #[test]
     fn test_peek_n() {
-        let mut scanner = scanner_with_modes::create_scanner();
-        let mut find_iter = scanner_with_modes::create_find_iter(&mut scanner, INPUT);
+        let scanner = scanner_with_modes::create_scanner();
+        let mut find_iter = scanner_with_modes::create_find_iter(&scanner, INPUT);
         let peeked = find_iter.peek_n(2);
         assert_eq!(
             peeked,

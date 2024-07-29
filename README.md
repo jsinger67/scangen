@@ -103,62 +103,44 @@ The generated scanner looks like this:
 
 use scangen::{DfaData, FindMatches, Scanner, ScannerBuilder, ScannerModeData};
 
-const DFAS: &[DfaData; 7] = &[
+const DFAS: &[DfaData] = &[
     /* 0 */
     (
         "\\r\\n|\\r|\\n",
         &[1, 2],
         &[(0, 2), (0, 0), (2, 3)],
-        &[(0, (0, 2)), (0, (1, 1)), (2, (1, 1))],
+        &[(0, 2), (1, 1), (1, 1)],
     ),
     /* 1 */
-    (
-        "[\\s--\\r\\n]+",
-        &[1],
-        &[(0, 1), (1, 2)],
-        &[(0, (2, 1)), (1, (2, 1))],
-    ),
+    ("[\\s--\\r\\n]+", &[1], &[(0, 1), (1, 2)], &[(2, 1), (2, 1)]),
     /* 2 */
     (
         "(//.*(\\r\\n|\\r|\\n))",
         &[3, 4],
         &[(0, 1), (1, 2), (2, 5), (0, 0), (5, 6)],
-        &[
-            (0, (3, 1)),
-            (1, (3, 2)),
-            (2, (4, 2)),
-            (2, (0, 4)),
-            (2, (1, 3)),
-            (4, (1, 3)),
-        ],
+        &[(3, 1), (3, 2), (4, 2), (0, 4), (1, 3), (1, 3)],
     ),
     /* 3 */
     (
         "(/\\*.*?\\*/)",
         &[4],
         &[(0, 1), (1, 2), (2, 3), (3, 5), (0, 0)],
-        &[
-            (0, (3, 2)),
-            (1, (3, 4)),
-            (2, (5, 3)),
-            (3, (5, 1)),
-            (3, (4, 3)),
-        ],
+        &[(3, 2), (3, 4), (5, 3), (5, 1), (4, 3)],
     ),
     /* 4 */
-    (",", &[1], &[(0, 1), (0, 0)], &[(0, (6, 1))]),
+    (",", &[1], &[(0, 1), (0, 0)], &[(6, 1)]),
     /* 5 */
     (
         "0|[1-9][0-9]*",
         &[1, 2],
         &[(0, 2), (0, 0), (2, 3)],
-        &[(0, (7, 1)), (0, (8, 2)), (2, (9, 2))],
+        &[(7, 1), (8, 2), (9, 2)],
     ),
     /* 6 */
-    (".", &[1], &[(0, 1), (0, 0)], &[(0, (4, 1))]),
+    (".", &[1], &[(0, 1), (0, 0)], &[(4, 1)]),
 ];
 
-const MODES: &[ScannerModeData; 0] = &[];
+const MODES: &[ScannerModeData] = &[];
 
 fn matches_char_class(c: char, char_class: usize) -> bool {
     match char_class {
@@ -187,16 +169,13 @@ fn matches_char_class(c: char, char_class: usize) -> bool {
 }
 
 pub(crate) fn create_scanner() -> Scanner {
-    let mut builder = ScannerBuilder::new();
-    builder.add_dfa_data(DFAS);
-    builder.add_scanner_mode_data(MODES);
-    builder.build()
+    ScannerBuilder::new()
+        .add_dfa_data(DFAS)
+        .add_scanner_mode_data(MODES)
+        .build()
 }
 
-pub(crate) fn create_find_iter<'r, 'h>(
-    scanner: &'r mut Scanner,
-    input: &'h str,
-) -> FindMatches<'r, 'h> {
+pub(crate) fn create_find_iter<'h>(scanner: &Scanner, input: &'h str) -> FindMatches<'h> {
     scanner.find_iter(input, matches_char_class)
 }
 ```
@@ -214,8 +193,8 @@ fn main() {
     let file_name = args().nth(1).unwrap();
 
     let input = std::fs::read_to_string(file_name.clone()).unwrap();
-    let mut scanner = create_scanner();
-    let find_iter = create_find_iter(&mut scanner, &input);
+    let scanner = create_scanner();
+    let find_iter = create_find_iter(&scanner, &input);
 
     let mut count = 0;
     for ma in find_iter {

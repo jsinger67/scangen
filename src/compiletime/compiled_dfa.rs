@@ -29,8 +29,9 @@ pub(crate) struct CompiledDfa {
     /// Each entry in the vector represents a state in the DFA. The entry is a tuple of first and
     /// last index into the transitions vector.
     state_ranges: Vec<(usize, usize)>,
-    /// The transitions of the DFA.
-    transitions: Vec<(StateID, (CharClassID, StateID))>,
+    /// The transitions of the DFA. The indices that are relevant for a state are stored in the
+    /// state_ranges vector.
+    transitions: Vec<(CharClassID, StateID)>,
     /// The state of matching
     matching_state: MatchingState<StateID>,
 }
@@ -69,13 +70,13 @@ impl CompiledDfa {
                         .iter()
                         .position(|(ast, _)| ComparableAst(ast.clone()) == char_class.ast)
                     {
-                        acc.push((*state, (pos.into(), *target_state)));
-                        Ok::<Vec<(StateID, (CharClassID, StateID))>, ScanGenError>(acc)
+                        acc.push((pos.into(), *target_state));
+                        Ok::<Vec<(CharClassID, StateID)>, ScanGenError>(acc)
                     } else {
                         let match_function: MatchFunction = char_class.ast().clone().try_into()?;
                         let new_char_class_id = CharClassID::new(match_functions.len());
                         match_functions.push((char_class.ast().clone(), match_function));
-                        acc.push((*state, (new_char_class_id, *target_state)));
+                        acc.push((new_char_class_id, *target_state));
                         Ok(acc)
                     }
                 },
@@ -165,14 +166,8 @@ impl CompiledDfa {
             write!(output, "({}, {}), ", start, end)?;
         }
         write!(output, "], &[")?;
-        for (state, (char_class, target_state)) in &self.transitions {
-            write!(
-                output,
-                "({}, ({}, {})), ",
-                state.as_usize(),
-                char_class,
-                target_state.as_usize()
-            )?;
+        for (char_class, target_state) in &self.transitions {
+            write!(output, "({}, {}), ", char_class, target_state.as_usize())?;
         }
         writeln!(output, "]),")?;
 

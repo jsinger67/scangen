@@ -1,7 +1,5 @@
 use crate::common::Match;
 
-use crate::DfaData;
-
 use super::{Dfa, FindMatches, ScannerMode};
 
 /// A Scanner.
@@ -20,7 +18,7 @@ use super::{Dfa, FindMatches, ScannerMode};
 /// The default mode contains all DFAs and assigns incrementing token type numbers to them.
 /// The default mode is named `INITIAL`.
 ///
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Scanner {
     /// The DFAs that are used to search for matches.
     pub(crate) dfas: Vec<Dfa>,
@@ -33,12 +31,12 @@ pub struct Scanner {
 impl Scanner {
     /// Returns an iterator over all non-overlapping matches.
     /// The iterator yields a [`Match`] value until no more matches could be found.
-    pub fn find_iter<'r, 'h>(
-        &'r mut self,
+    pub fn find_iter<'h>(
+        &self,
         input: &'h str,
         matches_char_class: fn(char, usize) -> bool,
-    ) -> FindMatches<'r, 'h> {
-        FindMatches::new(self, input, matches_char_class)
+    ) -> FindMatches<'h> {
+        FindMatches::new(self.clone(), input, matches_char_class)
     }
 
     /// Executes a leftmost search and returns the first match that is found, if one exists.
@@ -100,15 +98,6 @@ impl Scanner {
                 current_mode.dfas[*dfa_index].advance(i, c, matches_char_class);
             }
 
-            if i == 0 {
-                // We remove all DFAs that did not find a match at the start position.
-                for (index, dfa) in current_mode.dfas.iter().enumerate() {
-                    if dfa.matching_state().is_no_match() {
-                        active_dfas.retain(|&dfa_index| dfa_index != index);
-                    }
-                }
-            }
-
             // We remove all DFAs from `active_dfas` that finished.
             active_dfas.retain(|&dfa_index| current_mode.dfas[dfa_index].search_for_longer_match());
 
@@ -162,6 +151,12 @@ impl Scanner {
         self.scanner_modes[self.current_mode].has_transition(token_type)
     }
 
+    /// Returns the name of the scanner mode with the given index.
+    /// If the index is out of bounds, None is returned.
+    pub fn mode_name(&self, index: usize) -> Option<&str> {
+        self.scanner_modes.get(index).map(|mode| mode.name())
+    }
+
     /// Sets the current scanner mode.
     ///
     /// A parser can explicitly set the scanner mode to switch to a different set of DFAs.
@@ -174,15 +169,5 @@ impl Scanner {
     /// Returns the current scanner mode.
     pub fn current_mode(&self) -> usize {
         self.current_mode
-    }
-}
-
-impl From<&[DfaData]> for Scanner {
-    fn from(dfas: &[DfaData]) -> Self {
-        Scanner {
-            dfas: dfas.iter().map(Dfa::from).collect(),
-            scanner_modes: Vec::new(),
-            current_mode: 0,
-        }
     }
 }

@@ -13,7 +13,7 @@ pub struct Dfa {
     /// The ranges of transitions for each state.
     pub state_ranges: Vec<(usize, usize)>,
     /// The transitions for each state.
-    pub transitions: Vec<(usize, (usize, usize))>,
+    pub transitions: Vec<(usize, usize)>,
     /// The current matching state of the DFA.
     pub(crate) matching_state: MatchingState<usize>,
 }
@@ -44,19 +44,14 @@ impl Dfa {
         c: char,
         matches_char_class: fn(char, usize) -> bool,
     ) -> Option<usize> {
-        let current_state = self.matching_state.current_state();
-        let (start, end) = self.state_ranges[current_state];
-        let transitions = &self.transitions[start..end];
-        transitions
-            .iter()
-            .find_map(|(state, (char_class, target_state))| {
-                debug_assert_eq!(state, &current_state);
-                if (matches_char_class)(c, *char_class) {
-                    Some(*target_state)
-                } else {
-                    None
-                }
-            })
+        let (start, end) = self.state_ranges[self.matching_state.current_state()];
+        for i in start..end {
+            let (char_class, target_state) = &self.transitions[i];
+            if matches_char_class(c, *char_class) {
+                return Some(*target_state);
+            }
+        }
+        None
     }
 
     #[inline]
@@ -96,7 +91,7 @@ impl From<&DfaData> for Dfa {
 ///
 /// You could imagine to have differnt patterns for, e.g. a Comment in different scanner modes, but
 /// you want to have the same token type number for all of them.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct DfaWithTokenType {
     dfa: Dfa,
     token_type: usize,
@@ -131,12 +126,6 @@ impl DfaWithTokenType {
         matches_char_class: fn(char, usize) -> bool,
     ) {
         self.dfa.advance(c_pos, c, matches_char_class);
-    }
-
-    /// Returns the matching state of the DFA.
-    #[inline]
-    pub(crate) fn matching_state(&self) -> &MatchingState<usize> {
-        &self.dfa.matching_state
     }
 
     /// Returns true if the search should continue on the next character if the automaton has ever

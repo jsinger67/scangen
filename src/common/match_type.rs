@@ -33,6 +33,12 @@ impl Match {
         self.span
     }
 
+    /// Get the span as range
+    #[inline]
+    pub fn range(&self) -> std::ops::Range<usize> {
+        self.span.range()
+    }
+
     /// Get the length of the match.
     #[inline]
     pub fn len(&self) -> usize {

@@ -6,9 +6,9 @@ pub type DfaData = (
     &'static [usize],
     // The ranges of transitions in the transitions slice. The state is used as index.
     &'static [(usize, usize)],
-    // The transitions of the DFA. The first usize is the state, the second usize is the char class
-    // and the third usize is the target state.
-    &'static [(usize, (usize, usize))],
+    // The transitions of the DFA. The first usize is the char class and the second usize
+    // is the target state.
+    &'static [(usize, usize)],
 );
 
 /// The data of a scanner mode generated as Rust code.

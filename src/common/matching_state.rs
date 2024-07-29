@@ -122,14 +122,14 @@ where
     #[inline]
     #[cfg(feature = "runtime")]
     pub(crate) fn is_no_match(&self) -> bool {
-        matches!(self.state, InnerMatchingState::None)
+        self.state == InnerMatchingState::None
     }
 
     /// Returns true if the current state is the longest match.
     #[inline]
     #[cfg(feature = "runtime")]
     pub(crate) fn is_longest_match(&self) -> bool {
-        matches!(self.state, InnerMatchingState::Longest)
+        self.state == InnerMatchingState::Longest
     }
 
     /// Returns the last match found.

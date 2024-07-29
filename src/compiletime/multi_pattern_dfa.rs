@@ -152,10 +152,7 @@ pub(crate) fn create_scanner() -> Scanner {{
         .build()
 }}
 
-pub(crate) fn create_find_iter<'r, 'h>(
-    scanner: &'r mut Scanner,
-    input: &'h str,
-) -> FindMatches<'r, 'h> {{
+pub(crate) fn create_find_iter<'h>(scanner: &Scanner, input: &'h str) -> FindMatches<'h> {{
     scanner.find_iter(input, matches_char_class)
 }}
 "
