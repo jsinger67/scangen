@@ -1,13 +1,15 @@
 # About `scangen`
 
-## WIP
+## Not developed anymore
 
-This create is still in an experimental state and should currently not be used by others.
-
-I experiment with the possibilities of scanner/lexer generation using the classical approaches
+This create was an experimentation with the possibilities of scanner/lexer generation using the
+classical approaches
 > Regular expression => NFA => DFA => minimized DFA => Rust code of a scanner
 
-The library uses the `regex-syntax` crate to parse the regular expressions that should be processed.
+All relevant results have been taken over to the [scnr](https://github.com/jsinger67/scnr.git)
+crate which actually supersedes this crate.
+
+The library used the `regex-syntax` crate to parse the regular expressions that should be processed.
 The resulting ASTs are later processed and finally a scanner source is created.
 
 ## Why
